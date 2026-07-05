@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexa Stays — Auth Flow (Nexa Pay Structure)</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --p: #E8507A; --pd: #C93A62; --pl: #F4809A; --ps: #FDF0F3;
+  --ac: #F9A86C; --as: #FEF5EC;
+  --k: #1A1118; --k2: #3D2B36; --k3: #6B5460; --k4: #9E8A93;
+  --ln: #EDE0E5; --bg: #FDFBFC; --bg2: #F8F2F5; --w: #FFFFFF;
+  --fd: 'Playfair Display', Georgia, serif;
+  --fb: 'DM Sans', sans-serif;
+  --navy: #152535; --navy2: #1D3448;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--fb); background: #060305; min-height: 100vh; padding: 56px 36px 80px; }
+
+/* ── Header ── */
+.pg-title { text-align: center; margin-bottom: 60px; }
+.pg-title h1 { font-family: var(--fd); font-size: 2.2rem; color: #fff; margin-bottom: 8px; }
+.pg-title h1 em { color: var(--p); font-style: normal; }
+.pg-title p { color: rgba(255,255,255,.3); font-size: .82rem; letter-spacing: .08em; }
+
+/* ── Section label ── */
+.slabel { text-align: center; margin: 70px 0 36px; }
+.slabel .stag { display: inline-flex; align-items: center; gap: 8px; background: rgba(232,80,122,.1); border: 1px solid rgba(232,80,122,.18); border-radius: 999px; padding: 5px 18px; font-size: .68rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--pl); }
+.slabel p { color: rgba(255,255,255,.2); font-size: .75rem; margin-top: 10px; letter-spacing: .06em; }
+
+/* ── Row ── */
+.row { display: flex; gap: 36px; justify-content: center; flex-wrap: wrap; align-items: flex-start; }
+
+/* ── iPhone ── */
+.iphone { flex-shrink: 0; }
+.ilabel { text-align: center; margin-bottom: 12px; font-size: .62rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.22); }
+.iframe {
+  background: #1C1C1E; border-radius: 48px; padding: 10px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 36px 70px rgba(0,0,0,.95), inset 0 1px 0 rgba(255,255,255,.07);
+  width: 292px;
+}
+.di { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); width: 96px; height: 24px; background: #000; border-radius: 16px; z-index: 20; }
+.iscreen { border-radius: 38px; overflow: hidden; height: 632px; position: relative; font-family: var(--fb); background: var(--bg); }
+.glow { position: absolute; bottom: -48px; left: 50%; transform: translateX(-50%); width: 160px; height: 48px; background: radial-gradient(ellipse, rgba(232,80,122,.18) 0%, transparent 70%); filter: blur(12px); pointer-events: none; }
+
+/* ── Status bar ── */
+.sb { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px 6px; font-size: 11px; font-weight: 600; color: var(--k); }
+.sb .t { font-size: 13px; font-weight: 700; letter-spacing: -.3px; }
+
+/* ── Common ── */
+.back-link { font-size: 11px; color: var(--p); font-weight: 600; margin-bottom: 20px; display: block; }
+.screen-icon { width: 52px; height: 52px; border-radius: 50%; background: var(--bg2); border: 1.5px solid var(--ln); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; margin: 0 auto 16px; }
+.screen-title { font-family: var(--fd); font-size: 1.1rem; font-weight: 700; color: var(--k); margin-bottom: 4px; }
+.screen-sub { font-size: .75rem; color: var(--k3); line-height: 1.5; margin-bottom: 20px; }
+.flabel { font-size: .72rem; font-weight: 700; color: var(--k3); margin-bottom: 4px; display: block; }
+.finput { width: 100%; padding: 11px 13px; border: 1.5px solid var(--ln); border-radius: 11px; font-family: var(--fb); font-size: 11px; color: var(--k); background: white; outline: none; margin-bottom: 10px; }
+.finput.focus { border-color: var(--p); box-shadow: 0 0 0 3px rgba(232,80,122,.08); }
+.btn-pf { display: block; background: var(--p); color: white; border: none; border-radius: 13px; padding: 13px; width: 100%; font-family: var(--fb); font-size: 12px; font-weight: 700; text-align: center; box-shadow: 0 4px 14px rgba(232,80,122,.3); cursor: pointer; }
+.btn-of { display: block; background: transparent; color: var(--p); border: 1.5px solid var(--p); border-radius: 13px; padding: 12px; width: 100%; font-family: var(--fb); font-size: 12px; font-weight: 600; text-align: center; cursor: pointer; }
+.btn-gf { display: block; background: var(--bg2); color: var(--k3); border: 1.5px solid var(--ln); border-radius: 13px; padding: 11px; width: 100%; font-family: var(--fb); font-size: 11px; font-weight: 600; text-align: center; cursor: pointer; }
+.btn-nav { display: flex; gap: 8px; margin-top: 16px; }
+.btn-nav .btn-gf { flex: 1; }
+.btn-nav .btn-pf { flex: 2; }
+.bottom-text { text-align: center; font-size: .72rem; color: var(--k4); margin-top: 10px; }
+.bottom-text span { color: var(--p); font-weight: 600; }
+.home-indicator { width: 100px; height: 4px; background: var(--k); border-radius: 2px; margin: 0 auto; opacity: .15; margin-bottom: 6px; margin-top: 6px; }
+
+/* ── Onboarding dots ── */
+.dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 24px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ln); }
+.dot.active { width: 22px; border-radius: 4px; background: var(--p); }
+.dot.done { background: var(--pl); }
+
+/* ── OTP boxes ── */
+.otp-row { display: flex; gap: 8px; justify-content: center; margin: 16px 0; }
+.otp-box { width: 38px; height: 46px; border: 2px solid var(--ln); border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: var(--k); background: white; }
+.otp-box.fill { border-color: var(--p); background: var(--ps); color: var(--p); }
+.otp-box.active { border-color: var(--p); box-shadow: 0 0 0 3px rgba(232,80,122,.12); }
+
+/* ── Radio card ── */
+.radio-card { border: 1.5px solid var(--ln); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+.radio-card.selected { border-color: var(--p); background: var(--ps); }
+.radio-ico { width: 32px; height: 32px; border-radius: 8px; background: var(--bg2); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+.radio-card.selected .radio-ico { background: rgba(232,80,122,.12); }
+.radio-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--ln); margin-left: auto; margin-top: 2px; flex-shrink: 0; }
+.radio-card.selected .radio-dot { border-color: var(--p); background: var(--p); }
+
+/* ── Doc upload ── */
+.ubox { border: 2px dashed var(--ln); border-radius: 13px; padding: 20px 16px; text-align: center; background: var(--bg2); margin-bottom: 10px; cursor: pointer; }
+.ubox .uico { font-size: 1.8rem; margin-bottom: 6px; }
+.ubox p { font-size: .7rem; color: var(--k4); margin-bottom: 4px; }
+.ubox .hint { font-size: .62rem; color: var(--k4); opacity: .7; line-height: 1.5; }
+
+/* ── PIN boxes ── */
+.pin-row { display: flex; gap: 12px; justify-content: center; margin: 24px 0; }
+.pin-box { width: 52px; height: 56px; border: 2px solid var(--ln); border-radius: 13px; background: var(--bg2); }
+.pin-box.fill { border-color: var(--p); background: var(--ps); }
+
+/* ── Progress bar (capture) ── */
+.progress-bar { height: 3px; background: var(--ln); border-radius: 2px; margin-bottom: 18px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--p); border-radius: 2px; }
+
+/* ── Nav header ── */
+.nav-hdr { display: flex; align-items: center; justify-content: space-between; padding: 0 16px 14px; }
+.nav-back { font-size: 16px; color: var(--k); }
+.nav-skip { font-size: 10px; font-weight: 600; color: var(--p); }
+.nav-step { font-size: 9px; font-weight: 700; color: var(--k4); }
+
+/* ── Phone input row ── */
+.phone-wrap { display: flex; gap: 6px; margin-bottom: 10px; }
+.country-code { width: 62px; padding: 11px 8px; border: 1.5px solid var(--ln); border-radius: 11px; font-family: var(--fb); font-size: 11px; color: var(--k); background: white; text-align: center; font-weight: 600; }
+.phone-num { flex: 1; padding: 11px 13px; border: 1.5px solid var(--ln); border-radius: 11px; font-family: var(--fb); font-size: 11px; color: var(--k); background: white; }
+.phone-num.focus { border-color: var(--p); box-shadow: 0 0 0 3px rgba(232,80,122,.08); }
+
+/* ── Onboarding illustration ── */
+.ob-circle { width: 130px; height: 130px; border-radius: 50%; background: var(--p); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; position: relative; }
+.ob-circle::before { content: ''; position: absolute; inset: -8px; border-radius: 50%; background: rgba(232,80,122,.12); }
+.ob-circle .ob-ico { font-size: 2.8rem; position: relative; z-index: 1; }
+
+/* ── Select dropdown ── */
+.fselect { width: 100%; padding: 11px 13px; border: 1.5px solid var(--ln); border-radius: 11px; font-family: var(--fb); font-size: 11px; color: var(--k); background: white; outline: none; margin-bottom: 10px; appearance: none; }
+
+/* ── Note ── */
+.note { background: var(--ps); border-left: 3px solid var(--p); border-radius: 0 9px 9px 0; padding: 8px 10px; font-size: .68rem; color: var(--pd); line-height: 1.6; margin: 6px 0 12px; }
+
+/* ── Checkbox ── */
+.check-row { display: flex; align-items: flex-start; gap: 8px; font-size: 9px; color: var(--k3); margin-bottom: 14px; }
+.check-row input { accent-color: var(--p); margin-top: 1px; }
+.check-row span { color: var(--p); font-weight: 600; }
+
+/* ── Dropdown mockup ── */
+.dropdown-open { background: white; border: 1.5px solid var(--p); border-radius: 11px; overflow: hidden; margin-bottom: 10px; }
+.dropdown-search { padding: 8px 12px; border-bottom: 1px solid var(--ln); }
+.dropdown-search input { width: 100%; border: none; outline: none; font-family: var(--fb); font-size: 10px; color: var(--k3); background: transparent; }
+.dropdown-item { padding: 8px 12px; font-size: 10px; color: var(--k); display: flex; align-items: center; gap: 6px; }
+.dropdown-item:hover, .dropdown-item.hover { background: var(--ps); color: var(--p); font-weight: 600; }
+.dropdown-item + .dropdown-item { border-top: 1px solid var(--bg2); }
+
+/* ── Selfie frame ── */
+.selfie-frame { width: 100%; height: 80px; border: 2px dashed var(--ln); border-radius: 13px; background: var(--bg2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; margin-bottom: 10px; cursor: pointer; }
+.selfie-frame .sf-ico { width: 32px; height: 32px; border-radius: 50%; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+.selfie-frame p { font-size: .68rem; color: var(--k4); }
+.selfie-hint { background: var(--bg2); border-radius: 9px; padding: 8px 10px; }
+.selfie-hint li { font-size: .65rem; color: var(--k4); line-height: 1.7; list-style: none; }
+.selfie-hint li::before { content: '• '; color: var(--p); }
+
+/* ── Step indicator (capture) ── */
+.step-badge { font-size: 9px; font-weight: 700; color: var(--p); background: var(--ps); border-radius: 999px; padding: 3px 10px; display: inline-block; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<div class="pg-title">
+  <h1>Nexa <em>Stays</em> — Auth Flow</h1>
+  <p>Nexa Pay Structure · Nexa Stays Theme</p>
+</div>
+
+<!-- ═══════════════════
+     ROW 1 — SPLASH + ONBOARDING
+     ═══════════════════ -->
+<div class="slabel">
+  <div class="stag">01 · Splash & Onboarding</div>
+  <p>Splash · Onboarding 1 · Onboarding 2 · Onboarding 3</p>
+</div>
+<div class="row">
+
+  <!-- SPLASH -->
+  <div class="iphone">
+    <div class="ilabel">Splash</div>
+    <div class="iframe" style="position:relative;">
+      <div class="di"></div>
+      <div class="iscreen" style="background:var(--p);display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <div style="position:absolute;inset:0;background:url('https://images.unsplash.com/photo-1539020140153-e479b8c22e70?w=600&q=70') center/cover;opacity:.1;"></div>
+        <div style="position:absolute;top:-60px;right:-60px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.06);"></div>
+        <div style="position:absolute;bottom:-40px;left:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.04);"></div>
+        <div style="position:relative;z-index:1;text-align:center;">
+          <div style="font-size:3.5rem;margin-bottom:12px;">🏡</div>
+          <div style="font-family:var(--fd);font-size:2rem;font-weight:700;color:white;margin-bottom:6px;">Nexa Stays</div>
+          <div style="font-size:.8rem;color:rgba(255,255,255,.7);">Verified stays in Morocco</div>
+        </div>
+        <div class="home-indicator" style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);opacity:.3;background:white;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ONBOARDING 1 -->
+  <div class="iphone">
+    <div class="ilabel">Onboarding 1</div>
+    <div class="iframe" style="position:relative;">
+      <div class="di"></div>
+      <div class="iscreen" style="display:flex;flex-direction:column;">
+        <div class="sb"><span class="t">9:41</span><div style="font-size:11px;">📶🔋</div></div>
+        <div style="text-align:right;padding:0 18px 6px;"><span style="font-size:10px;font-weight:600;color:var(--p);">Skip</span></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 24px;">
+          <div class="ob-circle">
+            <div class="ob-ico">🏡</div>
+          </div>
+          <div style="font-family:var(--fd);font-size:1.15rem;font-weight:700;color:var(--k);text-align:center;margin-bottom:8px;">Welcome to Nexa Stays</div>
+          <div style="font-size:.78rem;color:var(--k3);text-align:center;line-height:1.6;">The smartest way to book verified stays in Morocco. Safe, simple and fair.</div>
+        </div>
+        <div style="padding:0 18px 24px;">
+          <div class="dots" style="margin-bottom:18px;"><div class="dot active"></div><div class="dot"></div><div class="dot"></div></div>
+          <button class="btn-pf">Next →</button>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ONBOARDING 2 -->
+  <div class="iphone">
+    <div class="ilabel">Onboarding 2</div>
+    <div class="iframe" style="position:relative;">
+      <div class="di"></div>
+      <div class="iscreen" style="display:flex;flex-direction:column;">
+        <div class="sb"><span class="t">9:41</span><div style="font-size:11px;">📶🔋</div></div>
+        <div style="text-align:right;padding:0 18px 6px;"><span style="font-size:10px;font-weight:600;color:var(--p);">Skip</span></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 24px;">
+          <div class="ob-circle" style="background:var(--ac);">
+            <div class="ob-ico">🔍</div>
+          </div>
+          <div style="font-family:var(--fd);font-size:1.15rem;font-weight:700;color:var(--k);text-align:center;margin-bottom:8px;">Browse & Book Instantly</div>
+          <div style="font-size:.78rem;color:var(--k3);text-align:center;line-height:1.6;">Discover riads, apartments, and villas. Contact hosts directly after booking. No fees.</div>
+        </div>
+        <div style="padding:0 18px 24px;">
+          <div class="dots" style="margin-bottom:18px;"><div class="dot done"></div><div class="dot active"></div><div class="dot"></div></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-gf" style="flex:1;">← Back</button>
+            <button class="btn-pf" style="flex:2;margin-bottom:0;">Next →</button>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ONBOARDING 3 -->
+  <div class="iphone">
+    <div class="ilabel">Onboarding 3</div>
+    <div class="iframe" style="position:relative;">
+      <div class="di"></div>
+      <div class="iscreen" style="display:flex;flex-direction:column;">
+        <div class="sb"><span class="t">9:41</span><div style="font-size:11px;">📶🔋</div></div>
+        <div style="text-align:right;padding:0 18px 6px;"><span style="font-size:10px;font-weight:600;color:var(--p);">Skip</span></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 24px;">
+          <div class="ob-circle" style="background:var(--pd);">
+            <div class="ob-ico">🪪</div>
+          </div>
+          <div style="font-family:var(--fd);font-size:1.15rem;font-weight:700;color:var(--k);text-align:center;margin-bottom:8px;">ID-Verified Community</div>
+          <div style="font-size:.78rem;color:var(--k3);text-align:center;line-height:1.6;">Every guest and host is identity-verified. Browse with confidence, stay with trust.</div>
+        </div>
+        <div style="padding:0 18px 24px;">
+          <div class="dots" style="margin-bottom:18px;"><div class="dot done"></div><div class="dot done"></div><div class="dot active"></div></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-gf" style="flex:1;">← Back</button>
+            <button class="btn-pf" style="flex:2;margin-bottom:0;">Get Started →</button>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════
+     ROW 2 — PHONE + VERIFY
+     ═══════════════════ -->
+<div class="slabel">
+  <div class="stag">02 · Phone Number & Verify</div>
+  <p>Enter Phone · Verify OTP</p>
+</div>
+<div class="row">
+
+  <!-- PHONE NUMBER -->
+  <div class="iphone">
+    <div class="ilabel">Phone Number</div>
+    <div class="iframe" style="position:relative;">
+      <div class="di"></div>
+      <div class="iscreen" style="display:flex;flex-direction:column;">
+        <div class="sb"><span class="t">9:41</span><div style="font-size:11px;">📶🔋</div></div>
+        <div style="padding:2px 16px 0;"><span style="font-size:16px;color:var(--k);">←</span></div>
+        <div style="flex:1;padding:20px 18px 0;">
+          <div class="screen-icon">📱</div>
+          <div class="screen-title" style="text-align:center;">Enter Your Phone Number</div>
+          <div class="screen-sub" style="text-align:center;">We'll send you a verification code</div>
+          <label class="flabel">Phone Number</label>
+          <div class="phone-wrap">
+            <div class="country-code">MA +212</div>
+            <input class="phone-num focus" type="text" placeholder="612 345 678">
+          </div>
+          <div class="check-row">
+            <input type="checkbox" checked>
+            <div>I agree to the <span>Terms of service</span> and <span>Privacy Policy</span></div>
+          </div>
+          <button class="btn-pf">Next →</button>
+          <div class="bottom-text" style="margin-top:14px;">Already have an account? <span>Sign In</span></div>
+        </div>
+        <div class="home-indicator" style="margin-top:auto;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VERIFY NUMBER -->
+  <div class="iphone">
+    <div class="ilabel">Verify Number</div>
+    <div class="iframe" style="position:relative;">
+      <div class="di"></div>
+      <div class="iscreen" style="display:flex;flex-direction:column;">
+        <div class="sb"><span class="t">9:41</span><div style="font-size:11px;">📶🔋</div></div>
+        <div style="padding:2px 16px 0;"><span style="font-size:16px;color:var(--k);">←</span></div>
+        <div style="flex:1;padding:20px 18px 0;">
+          <div class="screen-icon">📱</div>
+          <div class="screen-title" style="text-align:center;">Verify your number</div>
+          <div class="screen-sub" style="text-align:center;">Enter the 6-digit code sent to 612345678</div>
+          <div class="otp-row">
+            <div class="otp-box fill">4</div>
+            <div class="otp-box fill">7</div>
+            <div class="otp-box fill">2</div>
+            <div class="otp-box active"></div>
+            <div class="otp-box"></div>
+            <div class="otp-box"></div>
+          </div>
+          <div style="text-align:center;font-size:9px;color:var(--k4);margin-bottom:20px;">Resend Code in <span style="color:var(--p);font-weight:700;">29s</span></div>
+          <button class="btn-pf" style="margin-bottom:10px;">Verify & Continue</button>
+          <div style="text-align:center;font-size:8px;color:var(--k4);">For demo: Enter any 6-digit code</div>
+        </div>
+        <div class="home-indicator" style="margin-top:auto;"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════
+     ROW 3 — PERSONAL INFORMATION
+     ═══════════════════ -->
+<div class="slabel">
+  <div class="stag">03 · Personal Information</div>
+  <p>Empty · Moroccan Selected · Non-Moroccan Selected</p>
+</div>
+<div class="row">
+
+  <!-- PERSONAL INFO — EMPTY -->
+  <div class="iphone">
+    <div class="ilabel">Personal Information</div>
+    <div class="iframe" style="position:relative;">
+      <div class="di"></div>
+      <div class="iscreen" style="display:flex;flex-direction:column;">
+        <div class="sb"><span class="t">9:41</span><div style="font-size:11px;">📶🔋</div></div>
+        <div style="padding:2px 16px 0;"><span style="font-size:16px;color:var(--k);">←</span></div>
+        <div style="flex:1;padding:16px 18px 0;overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+            <div style="width:28px;height:28px;border-radius:8px;background:var(--ps);display:flex;align-items:center;justify-content:center;font-size:.85rem;">👤</div>
+            <div style="font-family:var(--fd);font-size:1rem;font-weight:700;color:var(--k);">Personal Information</div>
+          </div>
+          <div style="font-size:9px;color:var(--k3);margin-bottom:14px;">Tell us a bit about yourself</div>
+          <label class="flabel">Full name *</label>
+          <input class="finput" placeholder="Enter full name as on document">
+          <label class="flabel">Date of Birth *</label>
+          <input class="finput" placeholder="DD/MM/YYYY">
+          <label class="flabel">Are you a Moroccan citizen? *</label>
+          <div class="radio-card" style="margin-bottom:8px;">
+            <div style="width:16px;height:16px;border-radius:50%;border:2px solid var(--ln);flex-shrink:0;margin-top:2px;"></div>
+            <div style="font-size:11px;color:var(--k3);">Yes, I am Moroccan</div>
+          </div>
+          <div class="radio-card">
+            <div style="width:16px;height:16px;border-radius:50%;border:2px solid var(--ln);flex-shrink:0;margin-top:2px;"></div>
+            <div style="font-size:11px;color:var(--k3);">Yes, I am not Moroccan</div>
+          </div>
+        </div>
+        <div style="padding:10px 18px 8px;">
+          <button class="btn-pf">Continue</button>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PERSONAL INFO — IS MOROCCAN -->
+  <div class="iphone">
+    <div class="ilabel">Personal Info — Moroccan ✓</div>
+    <div class="iframe" style="position:relative;">
+      <div class="di"></div>
+      <div class="iscreen" style="display:flex;flex-direction:column;">
+        <div class="sb"><span class="t">9:41</span><div style="font-size:11px;">📶🔋</div></div>
+        <div style="padding:2px 16px 0;"><span style="font-size:16px;color:var(--k);">←</span></div>
+        <div style="flex:1;padding:16px 18px 0;overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+            <div style="width:28px;height:28px;border-radius:8px;background:var(--ps);display:flex;align-items:center;justify-content:center;font-size:.85rem;">👤</div>
+            <div style="font-family:var(--fd);font-size:1rem;font-weight:700;color:var(--k);">Personal Information</div>
+          </div>
+          <div style="font-size:9px;color:var(--k3);margin-bottom:14px;">Tell us a bit about yourself</div>
+          <label class="flabel">Full name *</label>
+          <input class="finput" placeholder="Enter full name as on document">
+          <label class="flabel">Date of Birth *</label>
+          <input class="finput" placeholder="DD/MM/YYYY">
+          <label class="flabel">Are you a Moroccan citizen? *</label>
+          <!-- Selected: Moroccan -->
+          <div class="radio-card selected" style="margin-bottom:8px;">
+            <div style="width:16px;height:16px;border-radius:50%;border:2px solid var(--p);background:var(--p);flex-shrink:0;margin-top:2px;"></div>
+            <div style="font-size:11px;color:var(--pd);font-weight:600;">Yes, I am Moroccan</div>
+          </div>
+          <div class="radio-card">
+            <div style="width:16px;height:16px;border-radius:50%;border:2px solid var(--ln);flex-shrink:0;margin-top:2px;"></div>
+            <div style="font-size:11px;color:var(--k3);">Yes, I am not Moroccan</div>
+          </div>
+        </div>
+        <div style="padding:10px 18px 8px;">
+          <button class="btn-pf">Continue</button>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PERSONAL INFO — NOT MOROCCAN -->
+  <div class="iphone">
+    <div class="ilabel">Personal Info — Non-Moroccan ✓</div>
+    <div class="iframe" style="position:relative;">
+      <div class="di"></div>
+      <div class="iscreen" style="display:flex;flex-direction:column;">
+        <div class="sb"><span class="t">9:41</span><div style="font-size:11px;">📶🔋</div></div>
+        <div style="padding:2px 16px 0;"><span style="font-size:16px;color:var(--k);">←</span></div>
+        <div style="flex:1;padding:16px 18px 0;overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+            <div style="width:28px;height:28px;border-radius:8px;background:var(--ps);display:flex;align-items:center;justify-content:center;font-size:.85rem;">👤</div>
+            <div style="font-family:var(--fd);font-size:1rem;font-weight:700;color:var(--k);">Personal Information</div>
+          </div>
+          <div style="font-size:9px;color:var(--k3);margin-bottom:14px;">Tell us a bit about yourself</div>
+          <label class="flabel">Full name *</label>
+          <input class="finput" placeholder="Enter full name as on document">
+          <label class="flabel">Date of Birth *</label>
+          <input class="finput" placeholder="DD/MM/YYYY">
+          <label class="flabel">Are you a Moroccan citizen? *</label>
+          <div class="radio-card" style="margin-bottom:8px;">
+            <div style="width:16px;height:16px;border-radius:50%;border:2px solid var(--ln);flex-shrink:0;margin-top:2px;"></div>
+            <div style="font-size:11px;color:var(--k3);">Yes, I am Moroccan</div>
+          </div>
+          <!-- Selected: Not Moroccan -->
+          <div class="radio-card selected">
+            <div style="width:16px;height:16px;border-radius:50%;border:2px solid var(--p);background:var(--p);flex-shrink:0;margin-top:2px;"></div>
+            <div style="font-size:11px;color:var(--pd);font-weight:600;">Yes, I am not Moroccan</div>
+          </div>
+        </div>
+        <div style="padding:10px 18px 8px;">
+          <button class="btn-pf">Continue</button>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════
+     ROW 4 — DOCUMENT VERIFICATION
+     ═══════════════════ -->
+<div class="slabel">
+  <div class="stag">04 · Document Verification</div>
+  <p>Select Type · Passport Selected · Country Dropdown</p>
+</div>
+<div class="row">
+
+  <!-- DOC VERIFY — EMPTY -->
+  <div class="iphone">
+    <div class="ilabel">Document Verification</div>
+    <div class="iframe" style="position:relative;">
+      <div class="di"></div>
+      <div class="iscreen" style="display:flex;flex-direction:column;">
+        <div class="sb"><span class="t">9:41</span><div style="font-size:11px;">📶🔋</div></div>
+        <div style="padding:2px 16px 0;"><span style="font-size:16px;color:var(--k);">←</span></div>
+        <div style="flex:1;padding:14px 16px 0;overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+            <div style="width:28px;height:28px;border-radius:8px;background:var(--ps);display:flex;align-items:center;justify-content:center;font-size:.85rem;">📄</div>
+            <div style="font-family:var(--fd);font-size:1rem;font-weight:700;color:var(--k);">Document Verification</div>
+          </div>
+          <div style="font-size:9px;color:var(--k3);margin-bottom:12px;">Please verify your identity with a government document</div>
+          <label class="flabel">Select Document type *</label>
+          <div class="radio-card" style="margin-bottom:6px;">
+            <div class="radio-ico">🛂</div>
+            <div><div style="font-size:10px;font-weight:600;color:var(--k);">Passport</div><div style="font-size:8px;color:var(--k4);">International travel document</div></div>
+            <div class="radio-dot" style="margin-left:auto;"></div>
+          </div>
+          <div class="radio-card" style="margin-bottom:6px;">
+            <div class="radio-ico">🪪</div>
+            <div><div style="font-size:10px;font-weight:600;color:var(--k);">National ID Card</div><div style="font-size:8px;color:var(--k4);">From your country</div></div>
+            <div class="radio-dot"></div>
+          </div>
+          <div class="radio-card" style="margin-bottom:10px;">
+            <div class="radio-ico">🚗</div>
+            <div><div style="font-size:10px;font-weight:600;color:var(--k);">Driver's License</div><div style="font-size:8px;color:var(--k4);">Valid government ID</div></div>
+            <div class="radio-dot"></div>
+          </div>
+          <label class="flabel">Country of Citizenship *</label>
+          <select class="fselect"><option value="">Select Country</option></select>
+        </div>
+        <div style="padding:8px 16px 8px;">
+          <button class="btn-pf">Continue to verification</button>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOC VERIFY — PASSPORT SELECTED -->
+  <div class="iphone">
+    <div class="ilabel">Document Verification — Passport ✓</div>
+    <div class="iframe" style="position:relative;">
+      <div class="di"></div>
+      <div class="iscreen" style="display:flex;flex-direction:column;">
+        <div class="sb"><span class="t">9:41</span><div style="font-size:11px;">📶🔋</div></div>
+        <div style="padding:2px 16px 0;"><span style="font-size:16px;color:var(--k);">←</span></div>
+        <div style="flex:1;padding:14px 16px 0;overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+            <div style="width:28px;height:28px;border-radius:8px;background:var(--ps);display:flex;align-items:center;justify-content:center;font-size:.85rem;">📄</div>
+            <div style="font-family:var(--fd);font-size:1rem;font-weight:700;color:var(--k);">Document Verification</div>
+          </div>
+          <div style="font-size:9px;color:var(--k3);margin-bottom:12px;">Please verify your identity with a government document</div>
+          <label class="flabel">Select Document type *</label>
+          <!-- Passport selected -->
+          <div class="radio-card selected" style="margin-bottom:6px;">
+            <div class="radio-ico">🛂</div>
+            <div><div style="font-size:10px;font-weight:600;color:var(--pd);">Passport</div><div style="font-size:8px;color:var(--pl);">International travel document</div></div>
+            <div class="radio-dot" style="margin-left:auto;border-color:var(--p);background:var(--p);"></div>
+          </div>
+          <div class="radio-card" style="margin-bottom:6px;">
+            <div class="radio-ico">🪪</div>
+            <div><div style="font-size:10px;font-weight:600;color:var(--k);">National ID Card</div><div style="font-size:8px;color:var(--k4);">From your country</div></div>
+            <div class="radio-dot"></div>
+          </div>
+          <div class="radio-card" style="margin-bottom:10px;">
+            <div class="radio-ico">🚗</div>
+            <div><div style="font-size:10px;font-weight:600;color:var(--k);">Driver's License</div><div style="font-size:8px;color:var(--k4);">Valid government ID</div></div>
+            <div class="radio-dot"></div>
+          </div>
+          <label class="flabel">Country of Citizenship *</label>
+          <select class="fselect"><option value="">Select Country</option></select>
+        </div>
+        <div style="padding:8px 16px 8px;">
+          <button class="btn-pf">Continue to verification</button>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOC VERIFY — DROPDOWN OPEN -->
+  <div class="iphone">
+    <div class="ilabel">Document Verification — Country Dropdown</div>
+    <div class="iframe" style="position:relative;">
+      <div class="di"></div>
+      <div class="iscreen" style="display:flex;flex-direction:column;">
+        <div class="sb"><span class="t">9:41</span><div style="font-size:11px;">📶🔋</div></div>
+        <div style="padding:2px 16px 0;"><span style="font-size:16px;color:var(--k);">←</span></div>
+        <div style="flex:1;padding:14px 16px 0;overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+            <div style="width:28px;height:28px;border-radius:8px;background:var(--ps);display:flex;align-items:center;justify-content:center;font-size:.85rem;">📄</div>
+            <div style="font-family:var(--fd);font-size:1rem;font-weight:700;color:var(--k);">Document Verification</div>
+          </div>
+          <div style="font-size:9px;color:var(--k3);margin-bottom:12px;">Please verify your identity with a government document</div>
+          <label class="flabel">Select Document type *</label>
+          <div class="radio-card selected" style="margin-bottom:10px;">
+            <div class="radio-ico">🛂</div>
+            <div><div style="font-size:10px;font-weight:600;color:var(--pd);">Passport</div></div>
+            <div class="radio-dot" style="margin-left:auto;border-color:var(--p);background:var(--p);"></div>
+          </div>
+          <label class="flabel">Country of Citizenship *</label>
+          <!-- Dropdown open -->
+          <div class="dropdown-open">
+            <div class="dropdown-search">
+              <input type="text" placeholder="Search Country...">
+            </div>
+            <div class="dropdown-item">🇩🇿 Algeria</div>
+            <div class="dropdown-item hover">🇪🇬 Egypt</div>
+            <div class="dropdown-item">🇫🇷 France</div>
+            <div class="dropdown-item">🇩🇪 Germany</div>
+          </div>
+        </div>
+        <div style="padding:8px 16px 8px;">
+          <button class="btn-pf">Continue to verification</button>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════
+     ROW 5 — CAPTURE DOCUMENT + PIN
+     ═══════════════════ -->
+<div class="slabel">
+  <div class="stag">05 · Capture & PIN</div>
+  <p>Capture Documents · Create PIN · Confirm PIN</p>
+</div>
+<div class="row">
+
+  <!-- CAPTURE DOCUMENT -->
+  <div class="iphone">
+    <div class="ilabel">Capture Documents</div>
+    <div class="iframe" style="position:relative;">
+      <div class="di"></div>
+      <div class="iscreen" style="display:flex;flex-direction:column;">
+        <div class="sb"><span class="t">9:41</span><div style="font-size:11px;">📶🔋</div></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 16px 8px;">
+          <span style="font-size:16px;color:var(--k);">←</span>
+          <span class="step-badge">Step 1 of 2</span>
+        </div>
+        <div style="padding:0 16px 2px;">
+          <div class="progress-bar"><div class="progress-fill" style="width:50%;"></div></div>
+        </div>
+        <div style="flex:1;padding:4px 16px 0;overflow:hidden;">
+          <div style="font-family:var(--fd);font-size:1rem;font-weight:700;color:var(--k);margin-bottom:3px;">Capture Documents</div>
+          <div style="font-size:9px;color:var(--k3);margin-bottom:12px;">Take clear photos of your document and yourself</div>
+          <!-- Document photo -->
+          <label class="flabel">Document photo</label>
+          <div class="ubox" style="padding:16px;">
+            <div style="width:36px;height:36px;border-radius:50%;background:var(--ps);display:flex;align-items:center;justify-content:center;font-size:1.1rem;margin:0 auto 6px;">📷</div>
+            <button style="background:var(--p);color:white;border:none;border-radius:9px;padding:7px 16px;font-family:var(--fb);font-size:10px;font-weight:700;cursor:pointer;margin-bottom:6px;">Capture Document</button>
+            <div class="hint">
+              <div style="font-size:.62rem;color:var(--k4);">• Ensure all text is clear and readable</div>
+              <div style="font-size:.62rem;color:var(--k4);">• Avoid glare and shadows</div>
+              <div style="font-size:.62rem;color:var(--k4);">• Include all edges and document</div>
+            </div>
+          </div>
+          <!-- Selfie -->
+          <label class="flabel">Selfie photo</label>
+          <div class="ubox" style="padding:14px;">
+            <div style="width:36px;height:36px;border-radius:50%;background:var(--ps);display:flex;align-items:center;justify-content:center;font-size:1.1rem;margin:0 auto 6px;">🤳</div>
+            <button style="background:var(--p);color:white;border:none;border-radius:9px;padding:7px 16px;font-family:var(--fb);font-size:10px;font-weight:700;cursor:pointer;margin-bottom:6px;">Take Selfie</button>
+            <div style="font-size:.62rem;color:var(--k4);">Keep your face within the oval frame<br>Remove sunglasses, masks, or hats</div>
+          </div>
+        </div>
+        <div class="home-indicator" style="margin-top:4px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CREATE PIN -->
+  <div class="iphone">
+    <div class="ilabel">Create a PIN</div>
+    <div class="iframe" style="position:relative;">
+      <div class="di"></div>
+      <div class="iscreen" style="display:flex;flex-direction:column;">
+        <div class="sb"><span class="t">9:41</span><div style="font-size:11px;">📶🔋</div></div>
+        <div style="padding:2px 16px 0;"></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:30px 22px 0;text-align:center;">
+          <div style="width:56px;height:56px;border-radius:50%;background:var(--ps);border:1.5px solid var(--ln);display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin-bottom:20px;">🔐</div>
+          <div style="font-family:var(--fd);font-size:1.1rem;font-weight:700;color:var(--k);margin-bottom:6px;">Create a PIN</div>
+          <div style="font-size:.75rem;color:var(--k3);margin-bottom:8px;">Protect your account with a 4-digit PIN</div>
+          <!-- PIN boxes -->
+          <div class="pin-row">
+            <div class="pin-box"></div>
+            <div class="pin-box"></div>
+            <div class="pin-box"></div>
+            <div class="pin-box"></div>
+          </div>
+          <!-- Keypad -->
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;margin-bottom:16px;">
+            <div style="height:46px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--k);">1</div>
+            <div style="height:46px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--k);">2</div>
+            <div style="height:46px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--k);">3</div>
+            <div style="height:46px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--k);">4</div>
+            <div style="height:46px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--k);">5</div>
+            <div style="height:46px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--k);">6</div>
+            <div style="height:46px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--k);">7</div>
+            <div style="height:46px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--k);">8</div>
+            <div style="height:46px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--k);">9</div>
+            <div></div>
+            <div style="height:46px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--k);">0</div>
+            <div style="height:46px;border-radius:12px;background:var(--ps);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--p);">⌫</div>
+          </div>
+          <button class="btn-pf" style="width:100%;margin-bottom:10px;">Continue</button>
+          <div style="font-size:10px;color:var(--p);font-weight:600;">Skip For Now</div>
+        </div>
+        <div class="home-indicator" style="margin-top:auto;margin-bottom:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIRM PIN -->
+  <div class="iphone">
+    <div class="ilabel">Confirm your PIN</div>
+    <div class="iframe" style="position:relative;">
+      <div class="di"></div>
+      <div class="iscreen" style="display:flex;flex-direction:column;">
+        <div class="sb"><span class="t">9:41</span><div style="font-size:11px;">📶🔋</div></div>
+        <div style="padding:2px 16px 0;"></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:30px 22px 0;text-align:center;">
+          <div style="width:56px;height:56px;border-radius:50%;background:var(--ps);border:1.5px solid var(--ln);display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin-bottom:20px;">🔐</div>
+          <div style="font-family:var(--fd);font-size:1.1rem;font-weight:700;color:var(--k);margin-bottom:6px;">Confirm your PIN</div>
+          <div style="font-size:.75rem;color:var(--k3);margin-bottom:8px;">Re-enter your PIN to confirm</div>
+          <!-- PIN boxes — filled -->
+          <div class="pin-row">
+            <div class="pin-box fill"></div>
+            <div class="pin-box fill"></div>
+            <div class="pin-box fill"></div>
+            <div class="pin-box" style="border-color:var(--p);box-shadow:0 0 0 3px rgba(232,80,122,.1);"></div>
+          </div>
+          <!-- Keypad -->
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;margin-bottom:16px;">
+            <div style="height:46px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--k);">1</div>
+            <div style="height:46px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--k);">2</div>
+            <div style="height:46px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--k);">3</div>
+            <div style="height:46px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--k);">4</div>
+            <div style="height:46px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--k);">5</div>
+            <div style="height:46px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--k);">6</div>
+            <div style="height:46px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--k);">7</div>
+            <div style="height:46px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--k);">8</div>
+            <div style="height:46px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--k);">9</div>
+            <div></div>
+            <div style="height:46px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--k);">0</div>
+            <div style="height:46px;border-radius:12px;background:var(--ps);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--p);">⌫</div>
+          </div>
+          <button class="btn-pf" style="width:100%;margin-bottom:10px;">Confirm PIN</button>
+          <div style="font-size:10px;color:var(--k4);">Back</div>
+        </div>
+        <div class="home-indicator" style="margin-top:auto;margin-bottom:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<div style="text-align:center;margin-top:80px;padding-bottom:20px;">
+  <p style="color:rgba(255,255,255,.1);font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;">Nexa Stays · Auth Flow · Nexa Pay Structure · © 2026</p>
+  <p style="color:rgba(255,255,255,.07);font-size:.6rem;margin-top:5px;">Splash · Onboarding · Phone · OTP · Personal Info · Document · Capture · PIN</p>
+</div>
+
+</body>
+</html>
