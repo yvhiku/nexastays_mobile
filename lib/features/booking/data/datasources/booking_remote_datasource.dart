@@ -112,6 +112,7 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
         case 'cancelled':
         case 'cancelled_by_guest':
         case 'cancelled_by_host':
+          return BookingStatus.cancelled;
         case 'expired':
           return BookingStatus.cancelled;
         case 'rejected':
@@ -123,6 +124,9 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
           return BookingStatus.pending;
       }
     }
+
+    final rawStatus = (json['status'] ?? 'pending').toString();
+    final isExpired = rawStatus.trim().toUpperCase() == 'EXPIRED';
 
     final occupants = json['occupants'];
     var guestName = (json['guest_name'] ?? '').toString().trim();
@@ -154,6 +158,13 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
       }
     }
 
+    final createdAt = DateTime.tryParse((json['created_at'] ?? '').toString()) ??
+        DateTime.now();
+    final paymentExpiresRaw = json['payment_expires_at'];
+    final paymentExpiresAt = paymentExpiresRaw != null
+        ? DateTime.tryParse(paymentExpiresRaw.toString())
+        : null;
+
     return BookingModel(
       id: (json['id'] ?? '').toString(),
       propertyId: (json['listing_id'] ?? '').toString(),
@@ -183,8 +194,14 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
         totalGuestPays: totalPaid,
         hostPayout: (json['payout_amount'] as num?)?.toDouble() ?? (subtotal - hostFee),
       ),
-      status: parseStatus((json['status'] ?? 'pending').toString()),
-      createdAt: DateTime.now(),
+      status: parseStatus(rawStatus),
+      createdAt: createdAt,
+      isExpired: isExpired,
+      paymentExpiresAt: paymentExpiresAt,
+      paymentFailed: json['payment_failed'] == true,
+      canReviewOverride: json['can_review'] as bool?,
+      canComplainOverride: json['can_complain'] as bool?,
+      canCancelOverride: json['can_cancel'] as bool?,
       checkInContact: contact.name,
       checkInContactPhone: contact.phone,
       checkInContactRole: contact.role,

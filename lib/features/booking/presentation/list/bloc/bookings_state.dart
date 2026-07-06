@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
-import '../../../domain/entities/booking.dart';
 
-enum BookingsTab { upcoming, past }
+import '../../../../../core/utils/booking_lifecycle.dart';
+import '../../../domain/entities/booking.dart';
 
 sealed class BookingsState extends Equatable {
   const BookingsState();
@@ -19,27 +19,50 @@ class BookingsLoading extends BookingsState {
 }
 
 class BookingsLoaded extends BookingsState {
-  final List<Booking> upcomingBookings;
-  final List<Booking> pastBookings;
+  final List<Booking> allBookings;
   final BookingsTab activeTab;
+  final BookingFilters filters;
+  final int visibleCount;
 
   const BookingsLoaded({
-    required this.upcomingBookings,
-    required this.pastBookings,
+    required this.allBookings,
     required this.activeTab,
+    required this.filters,
+    this.visibleCount = bookingsPageSize,
   });
 
+  List<Booking> get filteredBookings =>
+      filterAndSortBookings(allBookings, activeTab, filters);
+
+  List<Booking> get visibleBookings =>
+      filteredBookings.take(visibleCount).toList();
+
+  bool get hasMore => visibleCount < filteredBookings.length;
+
+  Map<BookingsTab, int> get tabCounts => countByTab(allBookings);
+
+  List<String> get cities => uniqueCities(allBookings);
+
+  BookingsLoaded copyWith({
+    List<Booking>? allBookings,
+    BookingsTab? activeTab,
+    BookingFilters? filters,
+    int? visibleCount,
+  }) {
+    return BookingsLoaded(
+      allBookings: allBookings ?? this.allBookings,
+      activeTab: activeTab ?? this.activeTab,
+      filters: filters ?? this.filters,
+      visibleCount: visibleCount ?? this.visibleCount,
+    );
+  }
+
   @override
-  List<Object?> get props => [upcomingBookings, pastBookings, activeTab];
+  List<Object?> get props => [allBookings, activeTab, filters, visibleCount];
 }
 
 class BookingsEmpty extends BookingsState {
-  final BookingsTab tab;
-
-  const BookingsEmpty({required this.tab});
-
-  @override
-  List<Object?> get props => [tab];
+  const BookingsEmpty();
 }
 
 class BookingsError extends BookingsState {

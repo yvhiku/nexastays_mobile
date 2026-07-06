@@ -1,12 +1,17 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import '../../../../core/utils/booking_lifecycle.dart';
 import '../../../../navigation/app_routes.dart';
 import '../../../../navigation/bottom_navigation.dart';
 import 'bloc/bookings_cubit.dart';
 import 'bloc/bookings_state.dart';
 import 'widgets/booking_card.dart';
+import 'widgets/booking_filters_sheet.dart';
+import 'widgets/booking_tabs_bar.dart';
+import 'widgets/booking_review_sheet.dart';
 import 'widgets/bookings_empty_state.dart';
 
 class BookingsPage extends StatefulWidget {
@@ -17,7 +22,7 @@ class BookingsPage extends StatefulWidget {
 }
 
 class _BookingsPageState extends State<BookingsPage> {
-  final PageController _pageController = PageController();
+  final _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -27,20 +32,8 @@ class _BookingsPageState extends State<BookingsPage> {
 
   @override
   void dispose() {
-    _pageController.dispose();
+    _searchController.dispose();
     super.dispose();
-  }
-
-  void _onTabTapped(BookingsTab tab) {
-    context.read<BookingsCubit>().switchTab(tab);
-    int pageIndex = tab == BookingsTab.upcoming ? 0 : 1;
-    if (_pageController.hasClients) {
-      _pageController.animateToPage(
-        pageIndex,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
   }
 
   void _showCancellationBottomSheet(BuildContext context, String bookingId) {
@@ -66,21 +59,18 @@ class _BookingsPageState extends State<BookingsPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Cancel booking?',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
+                style: GoogleFonts.dmSans(
+                  fontWeight: FontWeight.w700,
                   fontSize: 18,
-                  color: Color(0xFF1A1A2E),
+                  color: const Color(0xFF1A1A2E),
                 ),
               ),
               const SizedBox(height: 16),
               const Text(
                 'Please let us know why you are cancelling.',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF374151),
-                ),
+                style: TextStyle(fontSize: 14, color: Color(0xFF374151)),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -88,7 +78,8 @@ class _BookingsPageState extends State<BookingsPage> {
                 maxLines: 4,
                 decoration: InputDecoration(
                   hintText: 'Reason for cancellation (min 10 chars)',
-                  hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
+                  hintStyle:
+                      const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
@@ -101,14 +92,6 @@ class _BookingsPageState extends State<BookingsPage> {
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: Color(0xFFE8507A)),
                   ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Cancellation policy: Depending on the host\'s policy, you may not receive a full refund.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF6B7280),
                 ),
               ),
               const SizedBox(height: 24),
@@ -124,13 +107,7 @@ class _BookingsPageState extends State<BookingsPage> {
                           borderRadius: BorderRadius.circular(50),
                         ),
                       ),
-                      child: const Text(
-                        'Keep booking',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF374151),
-                        ),
-                      ),
+                      child: const Text('Keep booking'),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -179,14 +156,14 @@ class _BookingsPageState extends State<BookingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'My Bookings',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-            color: Color(0xFF1A1A2E),
+          style: GoogleFonts.playfairDisplay(
+            fontWeight: FontWeight.w700,
+            fontSize: 22,
+            color: const Color(0xFF1A1A2E),
           ),
         ),
         backgroundColor: Colors.white,
@@ -212,170 +189,232 @@ class _BookingsPageState extends State<BookingsPage> {
           }
         },
         builder: (context, state) {
-          bool isLoading = state is BookingsLoading || state is BookingsInitial;
-          BookingsTab activeTab = BookingsTab.upcoming;
-          if (state is BookingsLoaded) activeTab = state.activeTab;
-          if (state is BookingsEmpty) activeTab = state.tab;
+          if (state is BookingsLoading || state is BookingsInitial) {
+            return const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE8507A)),
+              ),
+            );
+          }
 
-          return Column(
-            children: [
-              // Custom Tab Bar
-              Container(
-                decoration: const BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: Color(0xFFF3F4F6), width: 1),
+          if (state is BookingsEmpty) {
+            return BookingsEmptyState(
+              onExplore: () => context.go(AppRoutes.explore),
+            );
+          }
+
+          if (state is! BookingsLoaded) {
+            return const SizedBox.shrink();
+          }
+
+          final loaded = state;
+          final hasActiveFilters = loaded.filters.search.isNotEmpty ||
+              loaded.filters.dateFrom != null ||
+              loaded.filters.dateTo != null ||
+              loaded.filters.status != null ||
+              loaded.filters.city != null ||
+              loaded.filters.priceMin != null ||
+              loaded.filters.priceMax != null ||
+              loaded.filters.sort != BookingSort.newest;
+
+          return RefreshIndicator(
+            color: const Color(0xFFE8507A),
+            onRefresh: () => context.read<BookingsCubit>().loadBookings(),
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                    child: Text(
+                      'View, manage, and track all your bookings in one place.',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 14,
+                        color: const Color(0xFF6B7280),
+                      ),
+                    ),
                   ),
                 ),
-                child: Row(
-                  children: [
-                    _buildTabItem(
-                      'Upcoming',
-                      activeTab == BookingsTab.upcoming,
-                      () => _onTabTapped(BookingsTab.upcoming),
-                    ),
-                    _buildTabItem(
-                      'Past',
-                      activeTab == BookingsTab.past,
-                      () => _onTabTapped(BookingsTab.past),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Page View Body
-              Expanded(
-                child: isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE8507A)),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: context.read<BookingsCubit>().setSearch,
+                            decoration: InputDecoration(
+                              hintText: 'Search property, ID, or city…',
+                              prefixIcon: const Icon(Icons.search, size: 20),
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding:
+                                  const EdgeInsets.symmetric(vertical: 0),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide:
+                                    const BorderSide(color: Color(0xFFE5E7EB)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide:
+                                    const BorderSide(color: Color(0xFFE5E7EB)),
+                              ),
+                            ),
+                          ),
                         ),
-                      )
-                    : PageView(
-                        controller: _pageController,
-                        physics: const NeverScrollableScrollPhysics(),
-                        children: [
-                          _buildUpcomingPage(state),
-                          _buildPastPage(state),
-                        ],
+                        const SizedBox(width: 10),
+                        Material(
+                          color: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            side: const BorderSide(color: Color(0xFFE5E7EB)),
+                          ),
+                          child: IconButton(
+                            onPressed: () => BookingFiltersSheet.show(
+                              context,
+                              initial: loaded.filters,
+                              cities: loaded.cities,
+                              onApply: context.read<BookingsCubit>().applyFilters,
+                              onClear: context.read<BookingsCubit>().clearFilters,
+                            ),
+                            icon: const Icon(Icons.tune, color: Color(0xFF374151)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 16, bottom: 8),
+                    child: BookingTabsBar(
+                      activeTab: loaded.activeTab,
+                      counts: loaded.tabCounts,
+                      onTabSelected: context.read<BookingsCubit>().switchTab,
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          tabSectionTitle(loaded.activeTab),
+                          style: GoogleFonts.dmSans(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                            color: const Color(0xFF1A1A2E),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          tabSectionDescription(loaded.activeTab),
+                          style: GoogleFonts.dmSans(
+                            fontSize: 13,
+                            color: const Color(0xFF6B7280),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (loaded.filteredBookings.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: BookingsEmptyState(
+                      tab: loaded.activeTab,
+                      filtered: hasActiveFilters ||
+                          loaded.filters.search.isNotEmpty,
+                      onExplore: () => context.go(AppRoutes.explore),
+                      onClearFilters: () {
+                        _searchController.clear();
+                        context.read<BookingsCubit>().clearFilters();
+                        context.read<BookingsCubit>().setSearch('');
+                      },
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          if (index < loaded.visibleBookings.length) {
+                            final booking = loaded.visibleBookings[index];
+                            return BookingCard(
+                              booking: booking,
+                              onViewDetails: () {
+                                context.push(
+                                  AppRoutes.bookingDetailOf(booking.id),
+                                  extra: booking,
+                                );
+                              },
+                              onPay: () async {
+                                final paid = await context.push<bool>(
+                                  AppRoutes.bookingCheckoutOf(booking.id),
+                                  extra: booking,
+                                );
+                                if (paid == true && context.mounted) {
+                                  context.read<BookingsCubit>().refresh();
+                                }
+                              },
+                              onCancel: () =>
+                                  _showCancellationBottomSheet(context, booking.id),
+                              onReview: () async {
+                                await showBookingReviewSheet(
+                                  context: context,
+                                  bookingId: booking.id,
+                                );
+                                if (context.mounted) {
+                                  context.read<BookingsCubit>().refresh();
+                                }
+                              },
+                              onBookAgain: () {
+                                context.push(
+                                  AppRoutes.propertyDetailOf(booking.propertyId),
+                                );
+                              },
+                            );
+                          }
+                          if (loaded.hasMore) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 24),
+                              child: OutlinedButton(
+                                onPressed:
+                                    context.read<BookingsCubit>().loadMore,
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(44),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(50),
+                                  ),
+                                ),
+                                child: const Text('Load more'),
+                              ),
+                            );
+                          }
+                          return const SizedBox(height: 24);
+                        },
+                        childCount: loaded.visibleBookings.length +
+                            (loaded.hasMore ? 1 : 1),
                       ),
-              ),
-            ],
+                    ),
+                  ),
+              ],
+            ),
           );
         },
       ),
       bottomNavigationBar: NexaBottomNavigation(
-        currentIndex: 3, // Profile tab index
+        currentIndex: 3,
         onTabChanged: (index) {
-          // Navigation logic handled externally or pushed here
           if (index == 0) context.go(AppRoutes.home);
           if (index == 1) context.go(AppRoutes.explore);
           if (index == 2) context.go(AppRoutes.saved);
         },
       ),
     );
-  }
-
-  Widget _buildTabItem(String title, bool isActive, VoidCallback onTap) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: isActive ? const Color(0xFFE8507A) : Colors.transparent,
-                width: 2,
-              ),
-            ),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            title,
-            style: GoogleFonts.dmSans(
-              fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-              fontSize: 14,
-              color: isActive ? const Color(0xFFE8507A) : const Color(0xFF9CA3AF),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUpcomingPage(BookingsState state) {
-    if (state is BookingsEmpty && state.tab == BookingsTab.upcoming) {
-      return BookingsEmptyState(
-        isUpcoming: true,
-        onExplore: () => context.go(AppRoutes.explore),
-      );
-    }
-    
-    if (state is BookingsLoaded && state.upcomingBookings.isEmpty) {
-      return BookingsEmptyState(
-        isUpcoming: true,
-        onExplore: () => context.go(AppRoutes.explore),
-      );
-    }
-
-    if (state is BookingsLoaded) {
-      return ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: state.upcomingBookings.length,
-        itemBuilder: (context, index) {
-          final booking = state.upcomingBookings[index];
-          return BookingCard(
-            booking: booking,
-            onViewDetails: () {
-              context.push(AppRoutes.bookingDetailOf(booking.id), extra: booking);
-            },
-            onPay: () async {
-              final paid = await context.push<bool>(
-                AppRoutes.bookingCheckoutOf(booking.id),
-                extra: booking,
-              );
-              if (paid == true && context.mounted) {
-                context.read<BookingsCubit>().refresh();
-              }
-            },
-            onCancel: () => _showCancellationBottomSheet(context, booking.id),
-          );
-        },
-      );
-    }
-
-    return SizedBox.shrink();
-  }
-
-  Widget _buildPastPage(BookingsState state) {
-    if (state is BookingsEmpty && state.tab == BookingsTab.past) {
-      return const BookingsEmptyState(isUpcoming: false);
-    }
-    
-    if (state is BookingsLoaded && state.pastBookings.isEmpty) {
-      return const BookingsEmptyState(isUpcoming: false);
-    }
-
-    if (state is BookingsLoaded) {
-      return ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: state.pastBookings.length,
-        itemBuilder: (context, index) {
-          final booking = state.pastBookings[index];
-          return BookingCard(
-            booking: booking,
-            onViewDetails: () {
-              context.push(AppRoutes.bookingDetailOf(booking.id), extra: booking);
-            },
-            onReview: () {
-                 // Navigator.pushNamed(context, '/review', arguments: booking);
-            },
-          );
-        },
-      );
-    }
-
-    return SizedBox.shrink();
   }
 }

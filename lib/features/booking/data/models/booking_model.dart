@@ -30,6 +30,12 @@ class BookingModel extends Booking {
     required super.checkInInstructions,
     required super.exactAddress,
     super.specialRequests,
+    super.isExpired,
+    super.paymentExpiresAt,
+    super.paymentFailed,
+    super.canReviewOverride,
+    super.canComplainOverride,
+    super.canCancelOverride,
   });
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
@@ -131,6 +137,12 @@ class BookingModel extends Booking {
       checkInInstructions: b.checkInInstructions,
       exactAddress: b.exactAddress,
       specialRequests: b.specialRequests,
+      isExpired: b.isExpired,
+      paymentExpiresAt: b.paymentExpiresAt,
+      paymentFailed: b.paymentFailed,
+      canReviewOverride: b.canReviewOverride,
+      canComplainOverride: b.canComplainOverride,
+      canCancelOverride: b.canCancelOverride,
     );
   }
 

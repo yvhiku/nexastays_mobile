@@ -39,6 +39,12 @@ class Booking extends Equatable {
   final String checkInInstructions;
   final String exactAddress;
   final String? specialRequests;
+  final bool isExpired;
+  final DateTime? paymentExpiresAt;
+  final bool paymentFailed;
+  final bool? canReviewOverride;
+  final bool? canComplainOverride;
+  final bool? canCancelOverride;
 
   const Booking({
     required this.id,
@@ -68,6 +74,12 @@ class Booking extends Equatable {
     required this.checkInInstructions,
     required this.exactAddress,
     this.specialRequests,
+    this.isExpired = false,
+    this.paymentExpiresAt,
+    this.paymentFailed = false,
+    this.canReviewOverride,
+    this.canComplainOverride,
+    this.canCancelOverride,
   });
 
   // ── Getters ──────────────────────────────────────────────────────────
@@ -79,12 +91,12 @@ class Booking extends Equatable {
 
   bool get needsPayment => status == BookingStatus.paymentPending;
 
-  bool get canCancel =>
+  bool get canCancel => canCancelOverride ?? (
       status == BookingStatus.paymentPending ||
       status == BookingStatus.pending ||
-      status == BookingStatus.confirmed;
+      status == BookingStatus.confirmed);
 
-  bool get canDispute => status == BookingStatus.completed;
+  bool get canDispute => canComplainOverride ?? status == BookingStatus.completed;
 
   bool get isActive => status == BookingStatus.active;
 
@@ -166,6 +178,12 @@ class Booking extends Equatable {
     String? checkInInstructions,
     String? exactAddress,
     String? specialRequests,
+    bool? isExpired,
+    DateTime? paymentExpiresAt,
+    bool? paymentFailed,
+    bool? canReviewOverride,
+    bool? canComplainOverride,
+    bool? canCancelOverride,
   }) {
     return Booking(
       id: id ?? this.id,
@@ -195,6 +213,12 @@ class Booking extends Equatable {
       checkInInstructions: checkInInstructions ?? this.checkInInstructions,
       exactAddress: exactAddress ?? this.exactAddress,
       specialRequests: specialRequests ?? this.specialRequests,
+      isExpired: isExpired ?? this.isExpired,
+      paymentExpiresAt: paymentExpiresAt ?? this.paymentExpiresAt,
+      paymentFailed: paymentFailed ?? this.paymentFailed,
+      canReviewOverride: canReviewOverride ?? this.canReviewOverride,
+      canComplainOverride: canComplainOverride ?? this.canComplainOverride,
+      canCancelOverride: canCancelOverride ?? this.canCancelOverride,
     );
   }
 
@@ -227,5 +251,11 @@ class Booking extends Equatable {
         checkInInstructions,
         exactAddress,
         specialRequests,
+        isExpired,
+        paymentExpiresAt,
+        paymentFailed,
+        canReviewOverride,
+        canComplainOverride,
+        canCancelOverride,
       ];
 }

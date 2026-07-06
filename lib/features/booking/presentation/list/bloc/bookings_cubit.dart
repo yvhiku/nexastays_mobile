@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../../../../core/session/session_manager.dart';
-import '../../../domain/entities/booking.dart';
+import '../../../../../core/utils/booking_lifecycle.dart';
 import '../../../domain/usecases/cancel_booking_usecase.dart';
 import '../../../domain/usecases/get_bookings_usecase.dart';
 import 'bookings_state.dart';
@@ -36,28 +37,14 @@ class BookingsCubit extends Cubit<BookingsState> {
     result.fold(
       (failure) => emit(BookingsError(message: failure.message)),
       (bookings) {
-        final upcomingBookings = bookings.where((b) {
-          return b.status == BookingStatus.paymentPending ||
-              b.status == BookingStatus.pending ||
-              b.status == BookingStatus.confirmed ||
-              b.status == BookingStatus.active;
-        }).toList()
-          ..sort((a, b) => a.checkIn.compareTo(b.checkIn));
-
-        final pastBookings = bookings.where((b) {
-          return b.status == BookingStatus.completed ||
-              b.status == BookingStatus.cancelled ||
-              b.status == BookingStatus.rejected;
-        }).toList()
-          ..sort((a, b) => b.checkIn.compareTo(a.checkIn));
-
-        if (upcomingBookings.isEmpty && pastBookings.isEmpty) {
-          emit(const BookingsEmpty(tab: BookingsTab.upcoming));
+        if (bookings.isEmpty) {
+          emit(const BookingsEmpty());
         } else {
+          final previous = state is BookingsLoaded ? state as BookingsLoaded : null;
           emit(BookingsLoaded(
-            upcomingBookings: upcomingBookings,
-            pastBookings: pastBookings,
-            activeTab: BookingsTab.upcoming,
+            allBookings: bookings,
+            activeTab: previous?.activeTab ?? BookingsTab.upcoming,
+            filters: previous?.filters ?? BookingFilters.defaults,
           ));
         }
       },
@@ -66,30 +53,49 @@ class BookingsCubit extends Cubit<BookingsState> {
 
   void switchTab(BookingsTab tab) {
     if (state is BookingsLoaded) {
-      final currentState = state as BookingsLoaded;
-
-      // Early exit if the tab hasn't actually changed
-      if (currentState.activeTab == tab) return;
-
-      emit(BookingsLoaded(
-        upcomingBookings: currentState.upcomingBookings,
-        pastBookings: currentState.pastBookings,
-        activeTab: tab,
-      ));
-    } else if (state is BookingsEmpty) {
-      emit(BookingsEmpty(tab: tab));
+      final current = state as BookingsLoaded;
+      if (current.activeTab == tab) return;
+      emit(current.copyWith(activeTab: tab, visibleCount: bookingsPageSize));
     }
+  }
+
+  void setSearch(String query) {
+    if (state is! BookingsLoaded) return;
+    final current = state as BookingsLoaded;
+    emit(current.copyWith(
+      filters: current.filters.copyWith(search: query),
+      visibleCount: bookingsPageSize,
+    ));
+  }
+
+  void applyFilters(BookingFilters filters) {
+    if (state is! BookingsLoaded) return;
+    final current = state as BookingsLoaded;
+    emit(current.copyWith(filters: filters, visibleCount: bookingsPageSize));
+  }
+
+  void clearFilters() {
+    if (state is! BookingsLoaded) return;
+    final current = state as BookingsLoaded;
+    emit(current.copyWith(
+      filters: BookingFilters.defaults.copyWith(search: current.filters.search),
+      visibleCount: bookingsPageSize,
+    ));
+  }
+
+  void loadMore() {
+    if (state is! BookingsLoaded) return;
+    final current = state as BookingsLoaded;
+    if (!current.hasMore) return;
+    emit(current.copyWith(
+      visibleCount: current.visibleCount + bookingsPageSize,
+    ));
   }
 
   Future<void> cancelBooking(String bookingId, String reason) async {
     if (state is! BookingsLoaded) return;
 
-    // Cache current state in case we need to revert
     final currentState = state as BookingsLoaded;
-
-    // We optionally might want to emit a loading state here, but since the
-    // requirement only says Right->reload/success and Left->error, we'll
-    // directly call the usecase.
 
     final result = await _cancelBookingUseCase(CancelBookingParams(
       bookingId: bookingId,
@@ -98,22 +104,15 @@ class BookingsCubit extends Cubit<BookingsState> {
 
     result.fold(
       (failure) {
-        // We emit the error, then we could optionally put the loaded state back
-        // but the standard flow would be to show an error dialog using a BlocListener
         emit(BookingsError(message: failure.message));
-        // Restore loaded state immediately after error is emitted so the list doesn't disappear
         emit(currentState);
       },
       (_) {
-        // Successfully cancelled
         emit(BookingCancelSuccess(bookingId: bookingId));
-        // Reload bookings to reflect the cancelled status
         loadBookings();
       },
     );
   }
 
-  void refresh() {
-    loadBookings();
-  }
+  void refresh() => loadBookings();
 }
