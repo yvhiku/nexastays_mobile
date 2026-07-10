@@ -202,9 +202,11 @@ class StaysHostOnboardingRepository implements HostRepository {
     if (value == 'APARTMENT' ||
         value == 'HOTEL' ||
         value == 'RIAD' ||
-        value == 'VILLA') {
+        value == 'VILLA' ||
+        value == 'HOSTEL') {
       return value;
     }
+    if (value.contains('HOSTEL')) return 'HOSTEL';
     if (value.contains('RIAD')) return 'RIAD';
     if (value.contains('HOTEL')) return 'HOTEL';
     if (value.contains('VILLA')) return 'VILLA';
