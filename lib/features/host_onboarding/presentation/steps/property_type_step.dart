@@ -70,7 +70,7 @@ class PropertyTypeStep extends StatelessWidget {
                   _HostTypeCard(
                     id: 'hotel',
                     emoji: '🏨',
-                    title: 'Hotel / Riad',
+                    title: 'Hotel / Hostel',
                     subtitle: 'Full property',
                     isSelected: selectedType == 'hotel',
                     onTap: () => onTypeSelected('hotel'),
