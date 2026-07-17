@@ -116,23 +116,33 @@ class PropertyModel extends Property {
       weeklyDiscount: (json['weekly_discount'] as num?)?.toDouble(),
       monthlyDiscount: (json['monthly_discount'] as num?)?.toDouble(),
       minimumNights: json['minimum_nights'] ?? 1,
-      photoUrls: (json['photo_urls'] as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      photoUrls: (json['photo_urls'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
       walkthroughVideoUrl: json['walkthrough_video_url'],
-      amenities: (json['amenities'] as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
-      rules: json['rules'] != null 
-          ? HostPreferencesModel.fromJson(json['rules']) 
-          : const HostPreferencesModel(checkInFrom: "14:00", checkOutBefore: "11:00"),
+      amenities: (json['amenities'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      rules: json['rules'] != null
+          ? HostPreferencesModel.fromJson(json['rules'])
+          : const HostPreferencesModel(
+              checkInFrom: "14:00", checkOutBefore: "11:00"),
       rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
       reviewCount: json['review_count'] ?? 0,
       isVerified: json['is_verified'] ?? false,
       isInstantBook: json['is_instant_book'] ?? false,
-      vibeTags: (json['vibe_tags'] as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      vibeTags: (json['vibe_tags'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
       checkInContact: json['check_in_contact'] ?? '',
       checkInInstructions: json['check_in_instructions'] ?? '',
       checkInMethod: json['check_in_method'] ?? '',
       isTrending: json['is_trending'] ?? false,
-      listedAt: json['listed_at'] != null 
-          ? DateTime.parse(json['listed_at']) 
+      listedAt: json['listed_at'] != null
+          ? DateTime.parse(json['listed_at'])
           : DateTime.now(),
       listingStatus: (json['status'] ?? 'LIVE').toString(),
       latitude: (json['latitude'] as num?)?.toDouble() ??
@@ -199,7 +209,8 @@ class PropertyModel extends Property {
       if (monthlyDiscount != null) 'monthly_discount': monthlyDiscount,
       'minimum_nights': minimumNights,
       'photo_urls': photoUrls,
-      if (walkthroughVideoUrl != null) 'walkthrough_video_url': walkthroughVideoUrl,
+      if (walkthroughVideoUrl != null)
+        'walkthrough_video_url': walkthroughVideoUrl,
       'amenities': amenities,
       'rules': (rules as HostPreferencesModel).toJson(),
       'rating': rating,
@@ -213,6 +224,8 @@ class PropertyModel extends Property {
       'is_trending': isTrending,
       'listed_at': listedAt.toIso8601String(),
       'status': listingStatus,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
     };
   }
 }

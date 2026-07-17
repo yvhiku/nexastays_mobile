@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -37,9 +37,8 @@ class _PayoutCalculatorCardState extends State<PayoutCalculatorCard> {
   void didUpdateWidget(PayoutCalculatorCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.nightlyRate != oldWidget.nightlyRate) {
-      final String currentText = widget.nightlyRate > 0
-          ? widget.nightlyRate.toInt().toString()
-          : '';
+      final String currentText =
+          widget.nightlyRate > 0 ? widget.nightlyRate.toInt().toString() : '';
       if (_controller.text != currentText &&
           double.tryParse(_controller.text) != widget.nightlyRate) {
         _controller.text = currentText;
@@ -135,8 +134,8 @@ class _PayoutCalculatorCardState extends State<PayoutCalculatorCard> {
                         decoration: const InputDecoration(
                           hintText: '0',
                           border: InputBorder.none,
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 12),
                           isDense: true,
                         ),
                       ),
@@ -177,7 +176,7 @@ class _PayoutCalculatorCardState extends State<PayoutCalculatorCard> {
           const SizedBox(height: 12),
           const Divider(color: Color(0xFFE5E7EB), thickness: 1, height: 1),
           const SizedBox(height: 12),
-          
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -221,14 +220,16 @@ class _PayoutCalculatorCardState extends State<PayoutCalculatorCard> {
                   ),
                 ),
                 Icon(
-                  _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  _isExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
                   size: 16,
                   color: const Color(0xFF6B7280),
                 ),
               ],
             ),
           ),
-          
+
           AnimatedCrossFade(
             firstChild: const SizedBox(height: 0, width: double.infinity),
             secondChild: Padding(

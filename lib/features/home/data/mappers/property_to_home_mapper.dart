@@ -26,5 +26,7 @@ home_entity.Property propertyToHome(stays_prop.Property p) {
     listingStatus: p.listingStatus,
     isVerified: p.isVerified,
     isInstantBook: p.isInstantBook,
+    latitude: p.latitude,
+    longitude: p.longitude,
   );
 }

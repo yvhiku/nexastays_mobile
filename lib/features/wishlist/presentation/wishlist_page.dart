@@ -1,5 +1,4 @@
-﻿import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -7,6 +6,7 @@ import '../../../design_system/components/buttons/primary_button.dart';
 import '../../../navigation/app_routes.dart';
 
 import '../../property/domain/entities/property.dart';
+import '../../property/presentation/widgets/stay_card.dart';
 import '../../search/domain/entities/search_filter.dart';
 import 'bloc/wishlist_cubit.dart';
 import 'bloc/wishlist_state.dart';
@@ -140,8 +140,7 @@ class _WishlistPageState extends State<WishlistPage>
         action: SnackBarAction(
           label: 'Undo',
           textColor: const Color(0xFFE8507A),
-          onPressed: () =>
-              context.read<WishlistCubit>().undoRemove(property),
+          onPressed: () => context.read<WishlistCubit>().undoRemove(property),
         ),
         duration: const Duration(seconds: 4),
         behavior: SnackBarBehavior.floating,
@@ -162,10 +161,7 @@ class _WishlistPageState extends State<WishlistPage>
       body: BlocConsumer<WishlistCubit, WishlistState>(
         listener: (context, state) {
           if (state is WishlistPropertyRemoved) {
-            // Find the removed property to enable undo.
-            final cubitState = context.read<WishlistCubit>().state;
-            // We look up the property from previous loaded state if possible.
-            // For now, pass a lightweight reconstruction via the SnackBar.
+            // Removal feedback is handled by the optimistic action SnackBar.
           }
           if (state is WishlistError) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -222,8 +218,7 @@ class _WishlistPageState extends State<WishlistPage>
                         ),
                         if (state is WishlistLoaded)
                           IconButton(
-                            onPressed: () =>
-                                _showSortSheet(state.sortOrder),
+                            onPressed: () => _showSortSheet(state.sortOrder),
                             icon: const Icon(
                               Icons.sort_rounded,
                               color: Color(0xFF374151),
@@ -321,12 +316,12 @@ class _WishlistPageState extends State<WishlistPage>
               const SizedBox(height: 32),
               SizedBox(
                 width: 200,
-              child: PrimaryButton(
-                label: 'Explore stays →',
-                height: 48,
-                radius: 50,
-                onPressed: () => context.go(AppRoutes.explore),
-              ),
+                child: PrimaryButton(
+                  label: 'Explore stays →',
+                  height: 48,
+                  radius: 50,
+                  onPressed: () => context.go(AppRoutes.explore),
+                ),
               ),
             ],
           ),
@@ -341,8 +336,7 @@ class _WishlistPageState extends State<WishlistPage>
     final properties = state.savedProperties;
 
     // Stats.
-    final verified =
-        properties.where((p) => p.isVerified).length;
+    final verified = properties.where((p) => p.isVerified).length;
     final avgPrice = properties.isEmpty
         ? 0.0
         : properties.map((p) => p.nightlyRate).reduce((a, b) => a + b) /
@@ -357,7 +351,8 @@ class _WishlistPageState extends State<WishlistPage>
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _statPill('${properties.length} saved', const Color(0xFF374151)),
+                _statPill(
+                    '${properties.length} saved', const Color(0xFF374151)),
                 const SizedBox(width: 8),
                 _statPill('$verified verified', const Color(0xFFE8507A)),
                 const SizedBox(width: 8),
@@ -373,26 +368,26 @@ class _WishlistPageState extends State<WishlistPage>
 
       const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-      // ── Grid ─────────────────────────────────────────────────
+      // ── Canonical stay cards ─────────────────────────────────
       SliverPadding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        sliver: SliverGrid.count(
-          crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 0.62,
-          children: properties.map((property) {
-            return _WishlistPropertyCard(
-              property: property,
-              onRemove: () {
+        sliver: SliverList.separated(
+          itemCount: properties.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 24),
+          itemBuilder: (context, index) {
+            final property = properties[index];
+            return StayCard(
+              stay: StayCardData.fromProperty(property),
+              isFavorite: true,
+              onFavoriteTap: () {
                 context.read<WishlistCubit>().removeProperty(property.id);
                 _showUndoSnackBar(property);
               },
-              onView: () => context.push(
+              onTap: () => context.push(
                 AppRoutes.propertyDetailOf(property.id),
               ),
             );
-          }).toList(),
+          },
         ),
       ),
 
@@ -455,8 +450,7 @@ class _WishlistPageState extends State<WishlistPage>
                 width: 160,
                 child: PrimaryButton(
                   label: 'Try again',
-                  onPressed: () =>
-                      context.read<WishlistCubit>().loadWishlist(),
+                  onPressed: () => context.read<WishlistCubit>().loadWishlist(),
                 ),
               ),
             ],
@@ -533,239 +527,6 @@ class _ShimmerCard extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// =============================================================================
-// Wishlist Property Card (inline)
-// =============================================================================
-
-class _WishlistPropertyCard extends StatelessWidget {
-  const _WishlistPropertyCard({
-    required this.property,
-    required this.onRemove,
-    required this.onView,
-  });
-
-  final Property property;
-  final VoidCallback onRemove;
-  final VoidCallback onView;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Photo ────────────────────────────────────────────
-          SizedBox(
-            height: 140,
-            width: double.infinity,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                CachedNetworkImage(
-                  imageUrl: property.photoUrls.isNotEmpty
-                      ? property.photoUrls.first
-                      : '',
-                  fit: BoxFit.cover,
-                  placeholder: (_, __) => Container(
-                    color: const Color(0xFFF3F4F6),
-                  ),
-                  errorWidget: (_, __, ___) => Container(
-                    color: const Color(0xFFF3F4F6),
-                    child: const Icon(
-                      Icons.image_not_supported_rounded,
-                      color: Color(0xFF9CA3AF),
-                      size: 32,
-                    ),
-                  ),
-                ),
-
-                // Verified badge.
-                if (property.isVerified)
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE8507A),
-                        borderRadius: BorderRadius.circular(50),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.check, color: Colors.white, size: 10),
-                          SizedBox(width: 3),
-                          Text(
-                            'Verified',
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                // Heart remove button.
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: GestureDetector(
-                    onTap: onRemove,
-                    child: CircleAvatar(
-                      radius: 16,
-                      backgroundColor: Colors.white.withOpacity(0.85),
-                      child: const Icon(
-                        Icons.favorite,
-                        color: Color(0xFFE8507A),
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ── Content ──────────────────────────────────────────
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Location.
-                  Text(
-                    '${property.neighborhood} · ${property.city}'
-                        .toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF9CA3AF),
-                      letterSpacing: 0.8,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-
-                  // Name.
-                  Text(
-                    property.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      color: Color(0xFF1A1A2E),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-
-                  // Rating.
-                  Row(
-                    children: [
-                      const Icon(Icons.star_rounded,
-                          color: Color(0xFFFBBF24), size: 13),
-                      const SizedBox(width: 2),
-                      Text(
-                        property.rating.toStringAsFixed(1),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF374151),
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '(${property.reviewCount})',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF9CA3AF),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const Spacer(),
-
-                  // Price + View button.
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '${property.nightlyRate.toStringAsFixed(0)} MAD',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: Color(0xFFE8507A),
-                              ),
-                            ),
-                            const Text(
-                              '/night',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Color(0xFF9CA3AF),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: onView,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE8507A),
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          child: const Text(
-                            'View →',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
             ),
           ),
         ],

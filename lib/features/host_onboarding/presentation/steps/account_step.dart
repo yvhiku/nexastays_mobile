@@ -1,5 +1,4 @@
-﻿import 'dart:convert';
-import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -114,7 +113,7 @@ class _AccountStepState extends State<AccountStep> {
     _phoneController.removeListener(_dispatchUpdate);
     _emailController.removeListener(_dispatchUpdate);
     _whatsappController.removeListener(_dispatchUpdate);
-    
+
     _firstNameController.dispose();
     _lastNameController.dispose();
     _phoneController.dispose();
@@ -124,8 +123,10 @@ class _AccountStepState extends State<AccountStep> {
   }
 
   void _dispatchUpdate() {
-    final fullName = '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'.trim();
-    
+    final fullName =
+        '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'
+            .trim();
+
     // Dispatch Account Info
     widget.bloc.add(
       HostAccountInfoSaved(
@@ -252,7 +253,8 @@ class _AccountStepState extends State<AccountStep> {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFFE8507A),
                   side: const BorderSide(color: Color(0xFFE8507A)),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   shape: RoundedRectangleBorder(
@@ -321,7 +323,8 @@ class _AccountStepState extends State<AccountStep> {
             isOptional: true,
             prefixIcon: const Padding(
               padding: EdgeInsets.only(left: 14, right: 8),
-              child: Icon(Icons.chat_bubble, color: Color(0xFF25D366), size: 20),
+              child:
+                  Icon(Icons.chat_bubble, color: Color(0xFF25D366), size: 20),
             ),
           ),
           const SizedBox(height: 32),
@@ -395,7 +398,8 @@ class _AccountStepState extends State<AccountStep> {
                     ),
                   )
                 : null,
-            prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+            prefixIconConstraints:
+                const BoxConstraints(minWidth: 0, minHeight: 0),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             border: OutlineInputBorder(
@@ -409,7 +413,9 @@ class _AccountStepState extends State<AccountStep> {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: readOnly ? const Color(0xFFE5E7EB) : const Color(0xFFE8507A),
+                color: readOnly
+                    ? const Color(0xFFE5E7EB)
+                    : const Color(0xFFE8507A),
                 width: readOnly ? 1 : 1.5,
               ),
             ),

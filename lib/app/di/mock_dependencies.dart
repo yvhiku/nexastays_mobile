@@ -270,6 +270,8 @@ class _HostListingStore {
       bathrooms: state.bathrooms,
       amenities: state.amenities,
       createdAt: DateTime.now(),
+      latitude: state.geoLat,
+      longitude: state.geoLng,
     );
     listings.add(property);
   }
@@ -345,6 +347,7 @@ class MockHostDashboardRepository implements dashboard_repo.HostRepository {
         title: property.title,
         listingType: property.propertyType,
         city: property.city,
+        neighborhood: '',
         address: property.address,
         description: property.description,
         status: property.listingStatus,
@@ -365,6 +368,8 @@ class MockHostDashboardRepository implements dashboard_repo.HostRepository {
         contactRole: 'OWNER',
         accessInstructions: '',
         photoUrls: property.images,
+        geoLat: property.latitude,
+        geoLng: property.longitude,
       ),
     );
   }
@@ -374,6 +379,7 @@ class MockHostDashboardRepository implements dashboard_repo.HostRepository {
     required String listingId,
     String? title,
     String? city,
+    String? neighborhood,
     String? address,
     String? description,
     String? checkInTime,
@@ -386,12 +392,15 @@ class MockHostDashboardRepository implements dashboard_repo.HostRepository {
     String? smokingPolicy,
     List<String>? amenities,
     String? accessInstructions,
+    double? geoLat,
+    double? geoLng,
   }) async {
     final result = await getListingForEdit(listingId);
     return result.map(
       (listing) => listing.copyWith(
         title: title,
         city: city,
+        neighborhood: neighborhood,
         address: address,
         description: description,
         checkInTime: checkInTime,
@@ -404,6 +413,8 @@ class MockHostDashboardRepository implements dashboard_repo.HostRepository {
         smokingPolicy: smokingPolicy,
         amenities: amenities,
         accessInstructions: accessInstructions,
+        geoLat: geoLat,
+        geoLng: geoLng,
       ),
     );
   }

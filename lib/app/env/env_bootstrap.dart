@@ -51,14 +51,20 @@ Future<String> resolveDevApiHost() async {
 
 /// Must run before [configureDependencies] so Dio clients get the right base URLs.
 Future<void> bootstrapEnv() async {
+  final defined = EnvConfig.fromDartDefine();
   if (_hasExplicitApiUrls()) {
-    _resolvedEnv = EnvConfig.fromDartDefine();
+    _resolvedEnv = defined;
     return;
   }
 
   const envName = String.fromEnvironment('ENV', defaultValue: 'development');
   if (envName == 'production') {
-    _resolvedEnv = const EnvConfig.production();
+    _resolvedEnv = EnvConfig(
+      identityBaseUrl: 'https://identity.nexastays.com/api/v1',
+      staysBaseUrl: 'https://stays.nexastays.com/api/v1',
+      enableLogging: false,
+      stripePublicKey: defined.stripePublicKey,
+    );
     return;
   }
 
@@ -67,6 +73,7 @@ Future<void> bootstrapEnv() async {
     identityBaseUrl: 'http://$host:3001/api/v1',
     staysBaseUrl: 'http://$host:3002/api/v1',
     enableLogging: true,
+    stripePublicKey: defined.stripePublicKey,
   );
 
   if (kDebugMode) {

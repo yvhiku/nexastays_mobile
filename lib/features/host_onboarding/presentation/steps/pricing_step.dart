@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -52,14 +52,16 @@ class _PricingStepState extends State<PricingStep> {
           ? widget.state.weeklyDiscountPercent!.toInt().toString()
           : '',
     );
-    _hasWeeklyDiscount = widget.state.weeklyDiscountPercent != null && widget.state.weeklyDiscountPercent! > 0;
-    
+    _hasWeeklyDiscount = widget.state.weeklyDiscountPercent != null &&
+        widget.state.weeklyDiscountPercent! > 0;
+
     _monthlyDiscountController = TextEditingController(
       text: widget.state.monthlyDiscountPercent != null
           ? widget.state.monthlyDiscountPercent!.toInt().toString()
           : '',
     );
-    _hasMonthlyDiscount = widget.state.monthlyDiscountPercent != null && widget.state.monthlyDiscountPercent! > 0;
+    _hasMonthlyDiscount = widget.state.monthlyDiscountPercent != null &&
+        widget.state.monthlyDiscountPercent! > 0;
 
     if (widget.state.minimumNights == 7) {
       _selectedMinStay = '1 week';
@@ -174,7 +176,9 @@ class _PricingStepState extends State<PricingStep> {
                         child: TextField(
                           controller: _rateController,
                           keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly
+                          ],
                           textAlign: TextAlign.center,
                           style: GoogleFonts.playfairDisplay(
                             fontSize: 40,
@@ -191,7 +195,8 @@ class _PricingStepState extends State<PricingStep> {
                             isDense: true,
                             contentPadding: EdgeInsets.zero,
                           ),
-                          onChanged: (_) => setState(() {}), // re-render layout bounds & calculator
+                          onChanged: (_) => setState(
+                              () {}), // re-render layout bounds & calculator
                         ),
                       ),
                       Padding(
@@ -243,23 +248,30 @@ class _PricingStepState extends State<PricingStep> {
                     },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFFFFF0F5) : Colors.white,
+                        color:
+                            isSelected ? const Color(0xFFFFF0F5) : Colors.white,
                         borderRadius: BorderRadius.circular(50),
                         border: Border.all(
-                          color: isSelected ? const Color(0xFFE8507A) : const Color(0xFFE5E7EB),
+                          color: isSelected
+                              ? const Color(0xFFE8507A)
+                              : const Color(0xFFE5E7EB),
                         ),
                       ),
                       child: Text(
                         // Formatting with commas for readability e.g. "1,000"
-                        val >= 1000 
+                        val >= 1000
                             ? '${(val / 1000).floor()},${(val % 1000).toString().padLeft(3, '0')}'
                             : val.toString(),
                         style: GoogleFonts.dmSans(
                           fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                          color: isSelected ? const Color(0xFFE8507A) : const Color(0xFF374151),
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.w500,
+                          color: isSelected
+                              ? const Color(0xFFE8507A)
+                              : const Color(0xFF374151),
                         ),
                       ),
                     ),
@@ -275,7 +287,8 @@ class _PricingStepState extends State<PricingStep> {
             nightlyRate: _currentRate,
             onRateChanged: (newRate) {
               // Update text field if calculator child fires a change
-              _rateController.text = newRate > 0 ? newRate.toInt().toString() : '';
+              _rateController.text =
+                  newRate > 0 ? newRate.toInt().toString() : '';
               setState(() {});
               _dispatchUpdate();
             },
@@ -329,11 +342,13 @@ class _PricingStepState extends State<PricingStep> {
                       color: const Color(0xFF6B7280),
                     ),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 ),
                 if (_hasWeeklyDiscount)
                   Padding(
-                    padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                    padding:
+                        const EdgeInsets.only(left: 16, right: 16, bottom: 16),
                     child: _buildDiscountField(
                       hint: '10',
                       controller: _weeklyDiscountController,
@@ -351,7 +366,7 @@ class _PricingStepState extends State<PricingStep> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
-               children: [
+              children: [
                 SwitchListTile(
                   value: _hasMonthlyDiscount,
                   onChanged: (val) {
@@ -377,11 +392,13 @@ class _PricingStepState extends State<PricingStep> {
                       color: const Color(0xFF6B7280),
                     ),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 ),
                 if (_hasMonthlyDiscount)
                   Padding(
-                    padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                    padding:
+                        const EdgeInsets.only(left: 16, right: 16, bottom: 16),
                     child: _buildDiscountField(
                       hint: '20',
                       controller: _monthlyDiscountController,
@@ -416,20 +433,25 @@ class _PricingStepState extends State<PricingStep> {
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(
                     color: isSelected ? const Color(0xFFE8507A) : Colors.white,
                     borderRadius: BorderRadius.circular(50),
                     border: Border.all(
-                      color: isSelected ? const Color(0xFFE8507A) : const Color(0xFFE5E7EB),
+                      color: isSelected
+                          ? const Color(0xFFE8507A)
+                          : const Color(0xFFE5E7EB),
                     ),
                   ),
                   child: Text(
                     stay,
                     style: GoogleFonts.dmSans(
                       fontSize: 13,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                      color: isSelected ? Colors.white : const Color(0xFF374151),
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.w500,
+                      color:
+                          isSelected ? Colors.white : const Color(0xFF374151),
                     ),
                   ),
                 ),
@@ -460,9 +482,10 @@ class _PricingStepState extends State<PricingStep> {
             decoration: InputDecoration(
               hintText: 'e.g. $hint',
               hintStyle: GoogleFonts.dmSans(
-                 color: const Color(0xFF9CA3AF),
+                color: const Color(0xFF9CA3AF),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFFE5E7EB)),

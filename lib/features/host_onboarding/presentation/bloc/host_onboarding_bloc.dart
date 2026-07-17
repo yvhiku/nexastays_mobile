@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../listing_wizard/listing_step_config.dart';
 import 'host_onboarding_event.dart';
 import 'host_onboarding_state.dart';
 
@@ -19,6 +20,9 @@ class HostOnboardingBloc
     on<HostTypeSelected>(_onTypeSelected);
     on<HostAccountInfoSaved>(_onAccountInfoSaved);
     on<HostPropertyTypeSaved>(_onPropertyTypeSaved);
+    on<HostBookingModelSaved>(_onBookingModelSaved);
+    on<HostListingDetailsSaved>(_onListingDetailsSaved);
+    on<HostUnitTypesSaved>(_onUnitTypesSaved);
     on<HostContactSaved>(_onContactSaved);
     on<HostBasicsSaved>(_onBasicsSaved);
     on<HostRulesSaved>(_onRulesSaved);
@@ -93,10 +97,81 @@ class HostOnboardingBloc
     Emitter<HostOnboardingState> emit,
   ) {
     final updatedValidation = Map<int, bool>.from(state.stepValidation);
-    updatedValidation[5] = true; // Assuming Type is part of basics (step 5)
+    updatedValidation[ListingStepIds.propertyType] = true;
+    updatedValidation.remove(ListingStepIds.bookingModel);
+    updatedValidation.remove(ListingStepIds.unitTypes);
+
+    final options = bookingModelOptions(event.propertyType);
+    final autoModel = options.length == 1 ? options.first.id : null;
+    if (autoModel != null) {
+      updatedValidation[ListingStepIds.bookingModel] = true;
+    }
 
     emit(state.copyWith(
       propertyType: event.propertyType,
+      bookingModel: autoModel,
+      clearBookingModel: autoModel == null,
+      unitTypes: const [],
+      stepValidation: updatedValidation,
+    ));
+  }
+
+  void _onBookingModelSaved(
+    HostBookingModelSaved event,
+    Emitter<HostOnboardingState> emit,
+  ) {
+    final updatedValidation = Map<int, bool>.from(state.stepValidation)
+      ..[ListingStepIds.bookingModel] = true
+      ..remove(ListingStepIds.unitTypes);
+    emit(state.copyWith(
+      bookingModel: event.bookingModel,
+      unitTypes: const [],
+      stepValidation: updatedValidation,
+    ));
+  }
+
+  void _onListingDetailsSaved(
+    HostListingDetailsSaved event,
+    Emitter<HostOnboardingState> emit,
+  ) {
+    final valid = event.description.trim().length >= 20 &&
+        event.maxGuests > 0 &&
+        event.beds > 0 &&
+        event.bathrooms > 0;
+    final updatedValidation = Map<int, bool>.from(state.stepValidation)
+      ..[ListingStepIds.details] = valid;
+    emit(state.copyWith(
+      description: event.description,
+      maxGuests: event.maxGuests,
+      beds: event.beds,
+      bathrooms: event.bathrooms,
+      sizeSqm: event.sizeSqm,
+      propertyDetails: event.propertyDetails,
+      stepValidation: updatedValidation,
+    ));
+  }
+
+  void _onUnitTypesSaved(
+    HostUnitTypesSaved event,
+    Emitter<HostOnboardingState> emit,
+  ) {
+    final valid = event.unitTypes.isNotEmpty &&
+        event.unitTypes.every(
+          (unit) => unit.name.trim().isNotEmpty && unit.basePrice > 0,
+        );
+    final updatedValidation = Map<int, bool>.from(state.stepValidation)
+      ..[ListingStepIds.unitTypes] = valid;
+    if (valid) {
+      updatedValidation[ListingStepIds.pricing] = true;
+    }
+    final unitBasePrice = valid
+        ? event.unitTypes
+            .map((unit) => unit.basePrice)
+            .reduce((a, b) => a < b ? a : b)
+        : null;
+    emit(state.copyWith(
+      unitTypes: event.unitTypes,
+      nightlyRate: unitBasePrice,
       stepValidation: updatedValidation,
     ));
   }
@@ -106,7 +181,8 @@ class HostOnboardingBloc
     Emitter<HostOnboardingState> emit,
   ) {
     final updatedValidation = Map<int, bool>.from(state.stepValidation);
-    updatedValidation[3] = event.whatsapp.isNotEmpty || event.checkInContact.isNotEmpty;
+    updatedValidation[3] =
+        event.whatsapp.isNotEmpty || event.checkInContact.isNotEmpty;
 
     emit(state.copyWith(
       checkInContact: event.checkInContact,
@@ -121,8 +197,9 @@ class HostOnboardingBloc
   ) {
     final bool isValid = event.propertyName.isNotEmpty &&
         event.city.isNotEmpty &&
-        event.neighborhood.isNotEmpty &&
-        event.exactAddress.isNotEmpty;
+        event.exactAddress.isNotEmpty &&
+        event.geoLat != null &&
+        event.geoLng != null;
 
     final updatedValidation = Map<int, bool>.from(state.stepValidation);
     updatedValidation[5] = isValid; // Step 5: Property Basics
@@ -132,6 +209,8 @@ class HostOnboardingBloc
       city: event.city,
       neighborhood: event.neighborhood,
       exactAddress: event.exactAddress,
+      geoLat: event.geoLat,
+      geoLng: event.geoLng,
       beds: event.beds,
       bathrooms: event.bathrooms,
       stepValidation: updatedValidation,

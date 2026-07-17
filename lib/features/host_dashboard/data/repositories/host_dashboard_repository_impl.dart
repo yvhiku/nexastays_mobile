@@ -230,6 +230,7 @@ class HostDashboardRepositoryImpl implements HostRepository {
     required String listingId,
     String? title,
     String? city,
+    String? neighborhood,
     String? address,
     String? description,
     String? checkInTime,
@@ -242,15 +243,20 @@ class HostDashboardRepositoryImpl implements HostRepository {
     String? smokingPolicy,
     List<String>? amenities,
     String? accessInstructions,
+    double? geoLat,
+    double? geoLng,
   }) async {
     try {
       final body = <String, dynamic>{
         if (title != null) 'title': title,
         if (city != null) 'city': city,
+        if (neighborhood != null) 'neighborhood': neighborhood,
         if (address != null) 'address': address,
         if (description != null) 'description': description,
         if (checkInTime != null) 'checkin_time': checkInTime,
         if (checkOutTime != null) 'checkout_time': checkOutTime,
+        if (geoLat != null) 'geo_lat': geoLat,
+        if (geoLng != null) 'geo_lng': geoLng,
         if (basePrice != null ||
             weekendPrice != null ||
             cleaningFee != null)
@@ -409,6 +415,7 @@ class HostDashboardRepositoryImpl implements HostRepository {
       title: (json['title'] ?? '').toString(),
       listingType: (json['listing_type'] ?? 'APARTMENT').toString(),
       city: (json['city'] ?? '').toString(),
+      neighborhood: (json['neighborhood'] ?? '').toString(),
       address: (json['address'] ?? '').toString(),
       description: (json['description'] ?? '').toString(),
       status: (json['status'] ?? 'DRAFT').toString(),
@@ -433,6 +440,12 @@ class HostDashboardRepositoryImpl implements HostRepository {
       contactRole: (contact['role'] ?? 'OWNER').toString(),
       accessInstructions: (contact['access_instructions'] ?? '').toString(),
       photoUrls: photoUrls,
+      geoLat: json['geo_lat'] is num
+          ? (json['geo_lat'] as num).toDouble()
+          : double.tryParse(json['geo_lat']?.toString() ?? ''),
+      geoLng: json['geo_lng'] is num
+          ? (json['geo_lng'] as num).toDouble()
+          : double.tryParse(json['geo_lng']?.toString() ?? ''),
     );
   }
 }

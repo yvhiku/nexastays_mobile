@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -24,7 +24,7 @@ class PhotosStep extends StatefulWidget {
 
 class _PhotosStepState extends State<PhotosStep> {
   final ImagePicker _picker = ImagePicker();
-  
+
   // Track which room category chip is currently selected
   String _selectedCategory = 'Entrance';
 
@@ -126,7 +126,8 @@ class _PhotosStepState extends State<PhotosStep> {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFFFFF0F5) : Colors.white,
+                      color:
+                          isSelected ? const Color(0xFFFFF0F5) : Colors.white,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: isSelected
@@ -143,9 +144,8 @@ class _PhotosStepState extends State<PhotosStep> {
                           category['label']!,
                           style: GoogleFonts.dmSans(
                             fontSize: 11,
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.w400,
+                            fontWeight:
+                                isSelected ? FontWeight.w600 : FontWeight.w400,
                             color: isSelected
                                 ? const Color(0xFFE8507A)
                                 : const Color(0xFF1A1A2E),

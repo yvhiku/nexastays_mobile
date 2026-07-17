@@ -23,22 +23,19 @@ class EnvConfig {
     required this.staysBaseUrl,
     this.enableLogging = false,
     this.stripePublicKey,
-    this.mapsApiKey,
   });
 
   const EnvConfig.development()
       : identityBaseUrl = 'http://10.0.2.2:3001/api/v1',
         staysBaseUrl = 'http://10.0.2.2:3002/api/v1',
         enableLogging = true,
-        stripePublicKey = null,
-        mapsApiKey = null;
+        stripePublicKey = null;
 
   const EnvConfig.production()
       : identityBaseUrl = 'https://identity.nexastays.com/api/v1',
         staysBaseUrl = 'https://stays.nexastays.com/api/v1',
         enableLogging = false,
-        stripePublicKey = null,
-        mapsApiKey = null;
+        stripePublicKey = null;
 
   factory EnvConfig.fromDartDefine() {
     const hasIdentity = bool.hasEnvironment('IDENTITY_BASE_URL');
@@ -79,7 +76,6 @@ class EnvConfig {
       staysBaseUrl: resolveStays(),
       enableLogging: hasLogging ? loggingFromDefine : !isProd,
       stripePublicKey: _optionalEnv('STRIPE_PUBLIC_KEY'),
-      mapsApiKey: _optionalEnv('MAPS_API_KEY'),
     );
   }
 
@@ -93,7 +89,6 @@ class EnvConfig {
 
   final bool enableLogging;
   final String? stripePublicKey;
-  final String? mapsApiKey;
 
   bool get isProduction => _env == 'production';
 
@@ -106,9 +101,6 @@ String? _optionalEnv(String key) {
   switch (key) {
     case 'STRIPE_PUBLIC_KEY':
       const k = String.fromEnvironment('STRIPE_PUBLIC_KEY');
-      return k.isEmpty ? null : k;
-    case 'MAPS_API_KEY':
-      const k = String.fromEnvironment('MAPS_API_KEY');
       return k.isEmpty ? null : k;
     default:
       return null;

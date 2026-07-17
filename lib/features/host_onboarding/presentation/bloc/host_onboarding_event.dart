@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../../listing_wizard/listing_step_config.dart';
+
 /// Base event class for the Host Onboarding BLoC.
 sealed class HostOnboardingEvent extends Equatable {
   const HostOnboardingEvent();
@@ -55,6 +57,52 @@ class HostPropertyTypeSaved extends HostOnboardingEvent {
   List<Object?> get props => [propertyType];
 }
 
+class HostBookingModelSaved extends HostOnboardingEvent {
+  const HostBookingModelSaved({required this.bookingModel});
+
+  final String bookingModel;
+
+  @override
+  List<Object?> get props => [bookingModel];
+}
+
+class HostListingDetailsSaved extends HostOnboardingEvent {
+  const HostListingDetailsSaved({
+    required this.description,
+    required this.maxGuests,
+    required this.beds,
+    required this.bathrooms,
+    this.sizeSqm,
+    this.propertyDetails = const {},
+  });
+
+  final String description;
+  final int maxGuests;
+  final int beds;
+  final int bathrooms;
+  final double? sizeSqm;
+  final Map<String, Object?> propertyDetails;
+
+  @override
+  List<Object?> get props => [
+        description,
+        maxGuests,
+        beds,
+        bathrooms,
+        sizeSqm,
+        propertyDetails,
+      ];
+}
+
+class HostUnitTypesSaved extends HostOnboardingEvent {
+  const HostUnitTypesSaved({required this.unitTypes});
+
+  final List<ListingUnitDraft> unitTypes;
+
+  @override
+  List<Object?> get props => [unitTypes];
+}
+
 /// Dispatched when the secondary contact info is saved.
 class HostContactSaved extends HostOnboardingEvent {
   const HostContactSaved({
@@ -80,6 +128,8 @@ class HostBasicsSaved extends HostOnboardingEvent {
     required this.exactAddress,
     required this.beds,
     required this.bathrooms,
+    this.geoLat,
+    this.geoLng,
   });
 
   final String propertyName;
@@ -88,6 +138,8 @@ class HostBasicsSaved extends HostOnboardingEvent {
   final String exactAddress;
   final int beds;
   final int bathrooms;
+  final double? geoLat;
+  final double? geoLng;
 
   @override
   List<Object?> get props => [
@@ -97,6 +149,8 @@ class HostBasicsSaved extends HostOnboardingEvent {
         exactAddress,
         beds,
         bathrooms,
+        geoLat,
+        geoLng,
       ];
 }
 

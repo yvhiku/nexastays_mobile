@@ -35,15 +35,21 @@ class HomeLoading extends HomeState {
 /// • [currentUser]        – the authenticated user
 class HomeLoaded extends HomeState {
   final List<Property> featuredProperties;
+
+  /// Curated Featured Deals for the launch feed.
   final List<Property> trendingProperties;
+  final List<Property> topRatedProperties;
   final List<String> destinations;
+  final Map<String, int> destinationCounts;
   final User currentUser;
   final bool showBecomeHostBanner;
 
   const HomeLoaded({
     required this.featuredProperties,
     required this.trendingProperties,
+    required this.topRatedProperties,
     required this.destinations,
+    required this.destinationCounts,
     required this.currentUser,
     this.showBecomeHostBanner = true,
   });
@@ -52,7 +58,9 @@ class HomeLoaded extends HomeState {
   List<Object?> get props => [
         featuredProperties,
         trendingProperties,
+        topRatedProperties,
         destinations,
+        destinationCounts,
         currentUser,
         showBecomeHostBanner,
       ];

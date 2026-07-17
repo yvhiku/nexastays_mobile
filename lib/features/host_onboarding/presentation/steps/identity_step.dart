@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../bloc/host_onboarding_bloc.dart';
@@ -125,7 +125,8 @@ class _IdentityStepState extends State<IdentityStep> {
             style: GoogleFonts.dmSans(fontSize: 14, color: _textPrimary),
             decoration: InputDecoration(
               hintText: 'e.g. AB123456',
-              hintStyle: GoogleFonts.dmSans(fontSize: 14, color: const Color(0xFF9CA3AF)),
+              hintStyle: GoogleFonts.dmSans(
+                  fontSize: 14, color: const Color(0xFF9CA3AF)),
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               border: OutlineInputBorder(
@@ -330,9 +331,7 @@ class _IdentityStepState extends State<IdentityStep> {
               style: GoogleFonts.dmSans(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: isUploaded
-                    ? const Color(0xFF16A34A)
-                    : _textSecondary,
+                color: isUploaded ? const Color(0xFF16A34A) : _textSecondary,
               ),
             ),
             if (!isUploaded) ...[

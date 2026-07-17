@@ -1,5 +1,7 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../../domain/entities/property.dart';
 
@@ -205,22 +207,61 @@ class LocationRevealCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // ── Static Map Image ────────────────────────────────────
-          Container(
-            height: 160,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE5E7EB),
-              borderRadius: BorderRadius.circular(12),
-              image: const DecorationImage(
-                // Placeholder map image simulation
-                image: NetworkImage(
-                  'https://maps.googleapis.com/maps/api/staticmap?center=Marrakech&zoom=14&size=600x300&maptype=roadmap&key=dummy'
-                ),
-                fit: BoxFit.cover,
-              ),
+          // ── Map preview ─────────────────────────────────────────
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              height: 160,
+              width: double.infinity,
+              child: property.hasMapCoordinates
+                  ? FlutterMap(
+                      options: MapOptions(
+                        initialCenter: LatLng(
+                          property.latitude!,
+                          property.longitude!,
+                        ),
+                        initialZoom: 15,
+                        interactionOptions: const InteractionOptions(
+                          flags: InteractiveFlag.none,
+                        ),
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate:
+                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.example.nexa_stays_f',
+                        ),
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              point: LatLng(
+                                property.latitude!,
+                                property.longitude!,
+                              ),
+                              width: 36,
+                              height: 36,
+                              alignment: Alignment.bottomCenter,
+                              child: const Icon(
+                                Icons.location_on,
+                                color: Color(0xFFE8507A),
+                                size: 36,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    )
+                  : Container(
+                      color: const Color(0xFFE5E7EB),
+                      child: const Center(
+                        child: Icon(
+                          Icons.map_outlined,
+                          color: Color(0xFF9CA3AF),
+                          size: 36,
+                        ),
+                      ),
+                    ),
             ),
-            // Map markers or content could go here
           ),
           const SizedBox(height: 16),
 

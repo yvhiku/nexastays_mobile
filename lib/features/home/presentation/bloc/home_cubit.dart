@@ -7,6 +7,7 @@ import '../../../../core/storage/local_storage.dart';
 import '../../../auth/data/models/user_model.dart';
 import '../../../auth/domain/entities/user.dart';
 import '../../../host_dashboard/domain/repositories/host_repository.dart';
+import '../../domain/entities/property.dart';
 import '../../domain/usecases/get_properties_usecase.dart';
 import 'home_state.dart';
 
@@ -38,8 +39,7 @@ class HomeCubit extends Cubit<HomeState> {
   /// Flow:
   /// 1. Emit [HomeLoading].
   /// 2. Fetch featured properties via [GetPropertiesUseCase].
-  /// 3. Split results → hero (first item) + today's drops (next 4).
-  /// 4. Build trending list from the remaining items.
+  /// 3. Curate hero, Featured Deals and Top Rated without repetition.
   /// 5. Resolve current [User] from `cached_user` (written at login from `/users/me`).
   /// 6. Emit [HomeLoaded] or [HomeError].
   Future<void> loadHome() async {
@@ -54,19 +54,45 @@ class HomeCubit extends Cubit<HomeState> {
         emit(HomeError(message: failure.message));
       },
       (properties) async {
-        // Hero banner  → first property
-        // Today's Drops → next 4 properties
-        final featuredProperties = properties.take(5).toList();
+        final rankedHero = List<Property>.from(properties)
+          ..sort((a, b) => _heroScore(b).compareTo(_heroScore(a)));
+        final heroCandidates = rankedHero.take(3).toList();
+        final hero = heroCandidates.isEmpty
+            ? <Property>[]
+            : <Property>[
+                heroCandidates[DateTime.now().day % heroCandidates.length],
+              ];
+        final usedIds = hero.map((property) => property.id).toSet();
 
-        // Trending     → the rest of the list
-        final trendingProperties =
-            properties.length > 5 ? properties.sublist(5) : <dynamic>[];
-
-        // Unique destination city names
-        final destinations = properties
-            .map((p) => p.city)
-            .toSet()
+        final newest = List<Property>.from(properties)
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        final featuredDeals = newest
+            .where((property) => !usedIds.contains(property.id))
+            .take(4)
             .toList();
+        usedIds.addAll(featuredDeals.map((property) => property.id));
+
+        final topRated = List<Property>.from(properties)
+          ..sort((a, b) {
+            final reviewComparison = b.reviewCount.compareTo(a.reviewCount);
+            if (reviewComparison != 0) return reviewComparison;
+            return b.rating.compareTo(a.rating);
+          });
+        final topRatedUnique = topRated
+            .where((property) =>
+                property.reviewCount > 0 && !usedIds.contains(property.id))
+            .take(4)
+            .toList();
+
+        final destinationCounts = <String, int>{};
+        for (final property in properties) {
+          final city = property.city.trim();
+          if (city.isEmpty) continue;
+          destinationCounts[city] = (destinationCounts[city] ?? 0) + 1;
+        }
+        final destinations = destinationCounts.keys.toList()
+          ..sort(
+              (a, b) => destinationCounts[b]!.compareTo(destinationCounts[a]!));
 
         // Current authenticated user (same cache as auth: /users/me after login)
         final currentUser = await _resolveCurrentUser();
@@ -74,9 +100,11 @@ class HomeCubit extends Cubit<HomeState> {
             await _resolveShowBecomeHostBanner(currentUser);
 
         emit(HomeLoaded(
-          featuredProperties: featuredProperties,
-          trendingProperties: trendingProperties.cast(),
+          featuredProperties: hero,
+          trendingProperties: featuredDeals,
+          topRatedProperties: topRatedUnique,
           destinations: destinations,
+          destinationCounts: destinationCounts,
           currentUser: currentUser,
           showBecomeHostBanner: showBecomeHostBanner,
         ));
@@ -86,6 +114,19 @@ class HomeCubit extends Cubit<HomeState> {
 
   /// Convenience alias — pulls fresh data.
   Future<void> refresh() => loadHome();
+
+  int _heroScore(Property property) {
+    var score = 0;
+    if (property.isVerified) score += 40;
+    if (property.imageUrl.trim().isNotEmpty) score += 30;
+    if (property.reviewCount > 0) {
+      score += (property.rating * 6).round();
+    }
+    if (property.isInstantBook) score += 15;
+    final age = DateTime.now().difference(property.createdAt).inDays;
+    if (age <= 30) score += 10;
+    return score;
+  }
 
   // ── Private helpers ─────────────────────────────────────────────────────
 

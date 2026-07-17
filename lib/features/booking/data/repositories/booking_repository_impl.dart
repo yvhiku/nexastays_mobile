@@ -66,7 +66,11 @@ class BookingRepositoryImpl implements BookingRepository {
         );
       }
       return Left(ServerFailure(e.message));
-    } on DioException {
+    } on DioException catch (e) {
+      final nested = e.error;
+      if (nested is AppException) {
+        return Left(ServerFailure(nested.message));
+      }
       return const Left(NetworkFailure());
     } catch (e) {
       return Left(ServerFailure(e.toString()));

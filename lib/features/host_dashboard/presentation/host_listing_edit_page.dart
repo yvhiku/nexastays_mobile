@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../app/di/injection.dart';
-import '../domain/entities/host_listing_edit_data.dart';
+import '../../host_onboarding/presentation/widgets/host_location_map_picker.dart';
 import '../domain/repositories/host_repository.dart';
 
 class HostListingEditPage extends StatefulWidget {
@@ -23,7 +23,6 @@ class HostListingEditPage extends StatefulWidget {
 class _HostListingEditPageState extends State<HostListingEditPage> {
   final _hostRepo = getIt<HostRepository>();
 
-  HostListingEditData? _listing;
   bool _loading = true;
   bool _saving = false;
   String? _error;
@@ -31,6 +30,7 @@ class _HostListingEditPageState extends State<HostListingEditPage> {
   late final TextEditingController _titleCtrl;
   late final TextEditingController _descriptionCtrl;
   late final TextEditingController _cityCtrl;
+  late final TextEditingController _neighborhoodCtrl;
   late final TextEditingController _addressCtrl;
   late final TextEditingController _basePriceCtrl;
   late final TextEditingController _weekendPriceCtrl;
@@ -42,6 +42,8 @@ class _HostListingEditPageState extends State<HostListingEditPage> {
 
   bool _petsAllowed = false;
   bool _smokingAllowed = false;
+  double? _geoLat;
+  double? _geoLng;
 
   @override
   void initState() {
@@ -49,6 +51,7 @@ class _HostListingEditPageState extends State<HostListingEditPage> {
     _titleCtrl = TextEditingController();
     _descriptionCtrl = TextEditingController();
     _cityCtrl = TextEditingController();
+    _neighborhoodCtrl = TextEditingController();
     _addressCtrl = TextEditingController();
     _basePriceCtrl = TextEditingController();
     _weekendPriceCtrl = TextEditingController();
@@ -57,6 +60,9 @@ class _HostListingEditPageState extends State<HostListingEditPage> {
     _checkInCtrl = TextEditingController();
     _checkOutCtrl = TextEditingController();
     _accessCtrl = TextEditingController();
+    _cityCtrl.addListener(() => setState(() {}));
+    _neighborhoodCtrl.addListener(() => setState(() {}));
+    _addressCtrl.addListener(() => setState(() {}));
     _load();
   }
 
@@ -65,6 +71,7 @@ class _HostListingEditPageState extends State<HostListingEditPage> {
     _titleCtrl.dispose();
     _descriptionCtrl.dispose();
     _cityCtrl.dispose();
+    _neighborhoodCtrl.dispose();
     _addressCtrl.dispose();
     _basePriceCtrl.dispose();
     _weekendPriceCtrl.dispose();
@@ -88,10 +95,10 @@ class _HostListingEditPageState extends State<HostListingEditPage> {
         _error = failure.message;
       }),
       (listing) {
-        _listing = listing;
         _titleCtrl.text = listing.title;
         _descriptionCtrl.text = listing.description;
         _cityCtrl.text = listing.city;
+        _neighborhoodCtrl.text = listing.neighborhood;
         _addressCtrl.text = listing.address;
         _basePriceCtrl.text = listing.basePrice.toStringAsFixed(0);
         _weekendPriceCtrl.text = listing.weekendPrice > 0
@@ -104,6 +111,8 @@ class _HostListingEditPageState extends State<HostListingEditPage> {
         _accessCtrl.text = listing.accessInstructions;
         _petsAllowed = listing.petsPolicy != 'NO';
         _smokingAllowed = listing.smokingPolicy == 'ALLOWED';
+        _geoLat = listing.geoLat;
+        _geoLng = listing.geoLng;
         setState(() => _loading = false);
       },
     );
@@ -122,6 +131,7 @@ class _HostListingEditPageState extends State<HostListingEditPage> {
       title: _titleCtrl.text.trim(),
       description: _descriptionCtrl.text.trim(),
       city: _cityCtrl.text.trim(),
+      neighborhood: _neighborhoodCtrl.text.trim(),
       address: _addressCtrl.text.trim(),
       basePrice: double.tryParse(_basePriceCtrl.text.trim()),
       weekendPrice: double.tryParse(_weekendPriceCtrl.text.trim()),
@@ -132,6 +142,8 @@ class _HostListingEditPageState extends State<HostListingEditPage> {
       petsPolicy: _petsAllowed ? 'ALLOWED' : 'NO',
       smokingPolicy: _smokingAllowed ? 'ALLOWED' : 'NOT_ALLOWED',
       accessInstructions: _accessCtrl.text.trim(),
+      geoLat: _geoLat,
+      geoLng: _geoLng,
     );
 
     if (!mounted) return;
@@ -277,7 +289,23 @@ class _HostListingEditPageState extends State<HostListingEditPage> {
                       _sectionTitle('Property details'),
                       _field('Title', _titleCtrl),
                       _field('City', _cityCtrl),
+                      _field('Neighborhood', _neighborhoodCtrl),
                       _field('Full address', _addressCtrl, maxLines: 2),
+                      const SizedBox(height: 8),
+                      HostLocationMapPicker(
+                        city: _cityCtrl.text,
+                        neighborhood: _neighborhoodCtrl.text,
+                        address: _addressCtrl.text,
+                        latitude: _geoLat,
+                        longitude: _geoLng,
+                        onCoordinatesChanged: (pin) {
+                          setState(() {
+                            _geoLat = pin.latitude;
+                            _geoLng = pin.longitude;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
                       _field('Description', _descriptionCtrl, maxLines: 4),
                       _field('Access instructions', _accessCtrl, maxLines: 3),
                     ],
@@ -303,34 +331,49 @@ class _HostListingEditPageState extends State<HostListingEditPage> {
   Widget _field(
     String label,
     TextEditingController controller, {
-    TextInputType? keyboardType,
     int maxLines = 1,
+    TextInputType? keyboardType,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        maxLines: maxLines,
-        style: GoogleFonts.dmSans(color: const Color(0xFF1A1A2E)),
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: GoogleFonts.dmSans(color: const Color(0xFF6B7280)),
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF1A1A2E),
+            ),
           ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: controller,
+            maxLines: maxLines,
+            keyboardType: keyboardType,
+            style: GoogleFonts.dmSans(fontSize: 14),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    const BorderSide(color: Color(0xFFE8507A), width: 1.5),
+              ),
+            ),
           ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFE8507A)),
-          ),
-        ),
+        ],
       ),
     );
   }

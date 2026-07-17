@@ -117,22 +117,53 @@ class StaysHostOnboardingRepository implements HostRepository {
         state.videoPath!,
         kind: 'WALKTHROUGH',
       );
+      final listingBasePrice = state.unitTypes.isNotEmpty
+          ? state.unitTypes
+              .map((unit) => unit.basePrice)
+              .reduce((a, b) => a < b ? a : b)
+          : state.nightlyRate ?? 0;
 
       final response = await _client.dio.post<Map<String, dynamic>>(
         ApiEndpoints.staysHostListings,
         data: <String, dynamic>{
           'title': state.propertyName ?? 'Untitled Property',
-          'description':
-              'Submitted from mobile host listing flow for admin approval.',
+          'description': state.description ?? '',
           'city': state.city ?? '',
+          'country': 'MA',
+          'neighborhood': state.neighborhood ?? '',
           'address': state.exactAddress ?? '',
+          if (state.geoLat != null) 'geo_lat': state.geoLat,
+          if (state.geoLng != null) 'geo_lng': state.geoLng,
           'listing_type': _toListingType(state.propertyType),
-          'checkin_time': state.quietHoursUntil,
-          'checkout_time': state.quietHoursFrom,
+          if (state.bookingModel != null) 'booking_model': state.bookingModel,
+          'checkin_time': state.checkInTime,
+          'checkout_time': state.checkOutTime,
           'instant_booking': false,
+          'property_details': {
+            ...state.propertyDetails,
+            if (state.sizeSqm != null) 'size_sqm': state.sizeSqm,
+            'bedrooms': [
+              {
+                'label': 'Bedroom',
+                'bed_summary': '${state.beds} bed(s)',
+                'sleeps': state.maxGuests,
+                'private_bathroom': state.bathrooms > 0,
+              }
+            ],
+            if (state.checkInMethod != null)
+              'checkin_method': state.checkInMethod,
+          },
+          'safety_features': const <String, bool>{},
+          'policies': {
+            'children_allowed': state.suitableForInfants,
+            'visitors_allowed': state.eventsAllowed,
+            'parties_allowed': state.eventsAllowed,
+            'min_stay': state.minimumNights,
+            'quiet_hours': true,
+          },
           'rate_plan': {
-            'base_price': state.nightlyRate ?? 0,
-            'cleaning_fee': 0,
+            'base_price': listingBasePrice,
+            'cleaning_fee': state.cleaningFee,
             'currency': 'MAD',
           },
           'rules': {
@@ -142,11 +173,14 @@ class StaysHostOnboardingRepository implements HostRepository {
             'quiet_hours': true,
             'couples_welcome': true,
             'amenities': state.amenities,
+            'cancellation_policy': 'MODERATE',
           },
           'check_in_contact': {
             'full_name': fullName.isEmpty ? 'Host' : fullName,
             'phone': phone.isEmpty ? '+212000000000' : phone,
             'role': 'OWNER',
+            if (state.checkInInstructions?.trim().isNotEmpty == true)
+              'access_instructions': state.checkInInstructions!.trim(),
           },
           'media': [
             ...photoAssets,
@@ -156,6 +190,12 @@ class StaysHostOnboardingRepository implements HostRepository {
               'sort_order': state.photoPaths.length,
             }
           ],
+          if (state.unitTypes.isNotEmpty)
+            'unit_types': state.unitTypes
+                .asMap()
+                .entries
+                .map((entry) => entry.value.toApiJson(entry.key))
+                .toList(),
         },
       );
       final code = response.statusCode ?? 500;
@@ -188,9 +228,11 @@ class StaysHostOnboardingRepository implements HostRepository {
       data: formData,
     );
     final payload = response.data ?? const <String, dynamic>{};
-    final data =
-        payload['data'] is Map<String, dynamic> ? payload['data'] as Map<String, dynamic> : payload;
-    final assetId = (data['asset_id'] ?? data['id'] ?? data['file_id'])?.toString();
+    final data = payload['data'] is Map<String, dynamic>
+        ? payload['data'] as Map<String, dynamic>
+        : payload;
+    final assetId =
+        (data['asset_id'] ?? data['id'] ?? data['file_id'])?.toString();
     if (assetId == null || assetId.isEmpty) {
       throw Exception('Invalid media upload response.');
     }

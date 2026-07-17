@@ -8,11 +8,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../profile/presentation/widgets/profile_photo_avatar.dart';
 import 'bloc/home_cubit.dart';
 import 'bloc/home_state.dart';
-import '../domain/entities/property.dart';
+import 'widgets/destination_cards.dart';
 import 'widgets/hero_section.dart';
 import 'widgets/featured_stays.dart';
 import 'widgets/host_banner.dart';
-import '../../search/presentation/widgets/filter_chip.dart';
+import 'widgets/trending_destinations.dart';
 
 /// Main home screen for NexaStays.
 ///
@@ -27,28 +27,11 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String _activeFilter = 'Verified';
-  final TextEditingController _searchController = TextEditingController();
-
   @override
   void initState() {
     super.initState();
     context.read<HomeCubit>().loadHome();
   }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  // ── Filter chip data ────────────────────────────────────────────────────
-  static const List<_FilterItem> _filters = [
-    _FilterItem(emoji: '✅', label: 'Verified', tag: 'verified'),
-    _FilterItem(emoji: '⚡', label: 'Instant', tag: 'instant'),
-    _FilterItem(emoji: '👨‍👩‍👧', label: 'Family', tag: 'family'),
-    _FilterItem(emoji: '💑', label: 'Couples', tag: 'couples'),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -145,82 +128,53 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 8),
-
-          // 1. Search bar
           _buildSearchBar(),
-          const SizedBox(height: 20),
-
-          // 2. Filter chips
-          _buildFilterChips(),
-          const SizedBox(height: 20),
-
-          // 3. Featured listing hero
+          const SizedBox(height: 22),
           if (state.featuredProperties.isNotEmpty) ...[
-            HeroSection(property: state.featuredProperties.first),
-            const SizedBox(height: 20),
-          ],
-
-          // 4. Today's Drops (horizontal scroll)
-          if (state.trendingProperties.isNotEmpty) ...[
-            Builder(
-              builder: (context) {
-                List<Property> filteredList = state.trendingProperties;
-
-                if (_searchController.text.isNotEmpty) {
-                  final query = _searchController.text.toLowerCase();
-                  filteredList = filteredList.where((p) {
-                    return p.city.toLowerCase().contains(query) ||
-                        p.title.toLowerCase().contains(query);
-                  }).toList();
-                }
-
-                if (_activeFilter == 'instant') {
-                  // Simulate "Instant book"
-                  filteredList = filteredList
-                      .where((p) => p.id.hashCode % 2 == 0)
-                      .toList();
-                } else if (_activeFilter == 'family') {
-                  filteredList =
-                      filteredList.where((p) => p.maxGuests >= 4).toList();
-                } else if (_activeFilter == 'couples') {
-                  filteredList =
-                      filteredList.where((p) => p.maxGuests <= 2).toList();
-                }
-
-                // Fallback to original list if filter yields no results to prevent empty states, but not on active text search
-                if (filteredList.isEmpty && _searchController.text.isEmpty) {
-                  filteredList = state.trendingProperties;
-                }
-
-                if (filteredList.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 40),
-                    child: Center(
-                      child: Text(
-                        'No stays found for your search.',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 14,
-                          color: const Color(0xFF6B7280),
-                        ),
-                      ),
-                    ),
-                  );
-                }
-
-                return FeaturedStays(
-                  properties: filteredList,
-                  onSeeAll: () => context.push(AppRoutes.listings),
-                  onPropertyTap: (property) =>
-                      context.push(AppRoutes.propertyDetailOf(property.id)),
-                );
-              },
+            _Reveal(
+              delay: const Duration(milliseconds: 80),
+              child: HeroSection(property: state.featuredProperties.first),
             ),
+            const SizedBox(height: 30),
           ],
-          const SizedBox(height: 28),
-
-          // 5. Host banner — hidden for approved / pending hosts (matches web)
+          _Reveal(
+            delay: const Duration(milliseconds: 130),
+            child: DestinationCards(onVibeTap: _openExploreForVibe),
+          ),
+          const SizedBox(height: 32),
+          _Reveal(
+            delay: const Duration(milliseconds: 180),
+            child: TrendingDestinations(
+              destinations: state.destinations,
+              counts: state.destinationCounts,
+              onDestinationTap: _openExploreForCity,
+            ),
+          ),
+          const SizedBox(height: 32),
+          if (state.trendingProperties.isNotEmpty) ...[
+            _Reveal(
+              delay: const Duration(milliseconds: 230),
+              child: FeaturedStays(
+                properties: state.trendingProperties,
+                onSeeAll: () => _openExplore(),
+                onPropertyTap: (property) =>
+                    context.push(AppRoutes.propertyDetailOf(property.id)),
+              ),
+            ),
+            const SizedBox(height: 30),
+          ],
           if (state.showBecomeHostBanner) ...[
             HostBanner(onTap: () => context.push(AppRoutes.hostRegister)),
+            const SizedBox(height: 32),
+          ],
+          if (state.topRatedProperties.isNotEmpty) ...[
+            FeaturedStays(
+              title: 'Top Rated',
+              properties: state.topRatedProperties,
+              onSeeAll: () => _openExplore(),
+              onPropertyTap: (property) =>
+                  context.push(AppRoutes.propertyDetailOf(property.id)),
+            ),
             const SizedBox(height: 32),
           ],
         ],
@@ -233,118 +187,75 @@ class _HomePageState extends State<HomePage> {
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildSearchBar() {
-    return Container(
-      padding: const EdgeInsets.only(left: 16, right: 12, top: 4, bottom: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF3F4F6),
-        borderRadius: BorderRadius.circular(50),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.search, color: Color(0xFF9CA3AF), size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: TextField(
-              controller: _searchController,
-              onChanged: (_) => setState(() {}),
-              style: GoogleFonts.dmSans(
-                fontSize: 14,
-                color: const Color(0xFF1A1A2E),
-              ),
-              cursorColor: const Color(0xFFE8507A),
-              decoration: InputDecoration(
-                hintText: 'Marrakech, Casablanca...',
-                hintStyle: GoogleFonts.dmSans(
-                  fontSize: 14,
-                  color: const Color(0xFF9CA3AF),
-                ),
-                filled: true,
-                fillColor: Colors.transparent,
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _openExplore,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF7F4F5),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFE8E0E3)),
           ),
-          if (_searchController.text.isNotEmpty)
-            GestureDetector(
-              onTap: () {
-                _searchController.clear();
-                setState(() {});
-              },
-              child: const Padding(
-                padding: EdgeInsets.only(right: 12),
-                child: Icon(Icons.close, color: Color(0xFF9CA3AF), size: 18),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.search_rounded,
+                color: Color(0xFFE8507A),
+                size: 22,
               ),
-            ),
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Where do you want to stay?',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF1A1A2E),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Destination, dates and guests',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 12,
+                        color: const Color(0xFF7C7480),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            alignment: Alignment.center,
-            child: const Icon(
-              Icons.tune,
-              color: Color(0xFFE8507A),
-              size: 16,
-            ),
+              ),
+              const Icon(
+                Icons.arrow_forward_rounded,
+                color: Color(0xFF1A1A2E),
+                size: 20,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Filter chips
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  Widget _buildFilterChips() {
-    return SizedBox(
-      height: NexaFilterChip.chipHeight,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: _filters.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (_, index) {
-          if (index == _filters.length) {
-            return Container(
-              width: NexaFilterChip.chipHeight,
-              height: NexaFilterChip.chipHeight,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-              ),
-              alignment: Alignment.center,
-              child: const Text('🐾', style: TextStyle(fontSize: 16, height: 1)),
-            );
-          }
-
-          final filter = _filters[index];
-          final isActive = _activeFilter == filter.tag ||
-              (_activeFilter == 'Verified' && filter.tag == 'verified');
-
-          return NexaFilterChip(
-            emoji: filter.emoji,
-            label: filter.label,
-            isActive: isActive,
-            onTap: () => setState(() => _activeFilter = filter.tag),
-          );
-        },
-      ),
+  void _openExplore({String? city, String? vibe}) {
+    final uri = Uri(
+      path: AppRoutes.explore,
+      queryParameters: {
+        if (city != null) 'city': city,
+        if (vibe != null) 'vibe': vibe,
+      },
     );
+    context.go(uri.toString());
   }
+
+  void _openExploreForCity(String city) => _openExplore(city: city);
+
+  void _openExploreForVibe(String vibe) => _openExplore(vibe: vibe);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Shimmer / loading placeholder
@@ -464,18 +375,26 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// Filter item data class
-// ═════════════════════════════════════════════════════════════════════════════
+class _Reveal extends StatelessWidget {
+  const _Reveal({required this.child, required this.delay});
 
-class _FilterItem {
-  final String emoji;
-  final String label;
-  final String tag;
+  final Widget child;
+  final Duration delay;
 
-  const _FilterItem({
-    required this.emoji,
-    required this.label,
-    required this.tag,
-  });
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: 420 + delay.inMilliseconds),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) => Opacity(
+        opacity: value,
+        child: Transform.translate(
+          offset: Offset(0, 12 * (1 - value)),
+          child: child,
+        ),
+      ),
+      child: child,
+    );
+  }
 }

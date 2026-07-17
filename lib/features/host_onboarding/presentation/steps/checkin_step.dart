@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../bloc/host_onboarding_bloc.dart';
@@ -55,11 +55,14 @@ class _CheckinStepState extends State<CheckinStep> {
     _infantsAllowed = widget.state.suitableForInfants;
     _maxGuests = widget.state.maxGuests;
 
-    _quietHoursFrom = _parseTime(widget.state.quietHoursFrom) ?? const TimeOfDay(hour: 22, minute: 0);
-    _quietHoursUntil = _parseTime(widget.state.quietHoursUntil) ?? const TimeOfDay(hour: 8, minute: 0);
+    _quietHoursFrom = _parseTime(widget.state.quietHoursFrom) ??
+        const TimeOfDay(hour: 22, minute: 0);
+    _quietHoursUntil = _parseTime(widget.state.quietHoursUntil) ??
+        const TimeOfDay(hour: 8, minute: 0);
 
     _selectedMethod = widget.state.checkInMethod ?? '';
-    _additionalRulesController = TextEditingController(text: widget.state.additionalRules ?? '');
+    _additionalRulesController =
+        TextEditingController(text: widget.state.additionalRules ?? '');
     _additionalRulesController.addListener(_dispatchUpdate);
   }
 
@@ -259,11 +262,13 @@ class _CheckinStepState extends State<CheckinStep> {
           Row(
             children: [
               Expanded(
-                child: _buildTimePickerBox('From', _quietHoursFrom, () => _selectTime(context, true)),
+                child: _buildTimePickerBox(
+                    'From', _quietHoursFrom, () => _selectTime(context, true)),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildTimePickerBox('Until', _quietHoursUntil, () => _selectTime(context, false)),
+                child: _buildTimePickerBox('Until', _quietHoursUntil,
+                    () => _selectTime(context, false)),
               ),
             ],
           ),
@@ -306,7 +311,9 @@ class _CheckinStepState extends State<CheckinStep> {
                   decoration: BoxDecoration(
                     color: isSelected ? const Color(0xFFFFF0F5) : Colors.white,
                     border: Border.all(
-                      color: isSelected ? const Color(0xFFE8507A) : const Color(0xFFE5E7EB),
+                      color: isSelected
+                          ? const Color(0xFFE8507A)
+                          : const Color(0xFFE5E7EB),
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -320,8 +327,11 @@ class _CheckinStepState extends State<CheckinStep> {
                         textAlign: TextAlign.center,
                         style: GoogleFonts.dmSans(
                           fontSize: 11,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                          color: isSelected ? const Color(0xFFE8507A) : const Color(0xFF4B5563),
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.w500,
+                          color: isSelected
+                              ? const Color(0xFFE8507A)
+                              : const Color(0xFF4B5563),
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -347,7 +357,8 @@ class _CheckinStepState extends State<CheckinStep> {
           TextField(
             controller: _additionalRulesController,
             maxLines: 3,
-            style: GoogleFonts.dmSans(fontSize: 14, color: const Color(0xFF1A1A2E)),
+            style: GoogleFonts.dmSans(
+                fontSize: 14, color: const Color(0xFF1A1A2E)),
             decoration: InputDecoration(
               hintText: 'e.g. No parties, remove shoes at entrance',
               hintStyle: GoogleFonts.dmSans(color: const Color(0xFF9CA3AF)),
@@ -371,7 +382,8 @@ class _CheckinStepState extends State<CheckinStep> {
     );
   }
 
-  Widget _buildRuleToggle(String title, bool value, ValueChanged<bool> onChanged) {
+  Widget _buildRuleToggle(
+      String title, bool value, ValueChanged<bool> onChanged) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
@@ -411,7 +423,8 @@ class _CheckinStepState extends State<CheckinStep> {
     );
   }
 
-  Widget _buildTimePickerBox(String label, TimeOfDay? time, VoidCallback onTap) {
+  Widget _buildTimePickerBox(
+      String label, TimeOfDay? time, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -432,7 +445,8 @@ class _CheckinStepState extends State<CheckinStep> {
                 color: const Color(0xFF374151),
               ),
             ),
-            const Icon(Icons.arrow_drop_down, color: Color(0xFF6B7280), size: 18),
+            const Icon(Icons.arrow_drop_down,
+                color: Color(0xFF6B7280), size: 18),
           ],
         ),
       ),

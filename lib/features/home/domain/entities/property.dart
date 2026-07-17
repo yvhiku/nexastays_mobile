@@ -23,6 +23,21 @@ class Property extends Equatable {
   final String listingStatus;
   final bool isVerified;
   final bool isInstantBook;
+  final double? latitude;
+  final double? longitude;
+
+  bool get hasMapCoordinates {
+    final lat = latitude;
+    final lng = longitude;
+    return lat != null &&
+        lng != null &&
+        lat.isFinite &&
+        lng.isFinite &&
+        lat >= -90 &&
+        lat <= 90 &&
+        lng >= -180 &&
+        lng <= 180;
+  }
 
   const Property({
     required this.id,
@@ -47,6 +62,8 @@ class Property extends Equatable {
     this.listingStatus = 'LIVE',
     this.isVerified = false,
     this.isInstantBook = false,
+    this.latitude,
+    this.longitude,
   });
 
   Property copyWith({
@@ -72,6 +89,8 @@ class Property extends Equatable {
     String? listingStatus,
     bool? isVerified,
     bool? isInstantBook,
+    double? latitude,
+    double? longitude,
   }) {
     return Property(
       id: id ?? this.id,
@@ -96,6 +115,8 @@ class Property extends Equatable {
       listingStatus: listingStatus ?? this.listingStatus,
       isVerified: isVerified ?? this.isVerified,
       isInstantBook: isInstantBook ?? this.isInstantBook,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
     );
   }
 
@@ -123,5 +144,7 @@ class Property extends Equatable {
         listingStatus,
         isVerified,
         isInstantBook,
+        latitude,
+        longitude,
       ];
 }

@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../navigation/app_routes.dart';
 
 import '../../../../design_system/components/badges/verified_badge.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../property/domain/entities/property.dart';
 import '../../domain/entities/fee_breakdown.dart';
 import 'bloc/booking_bloc.dart';
@@ -272,9 +274,28 @@ class _BookingPageState extends State<BookingPage> {
     BuildContext context,
     BookingFormReady state,
   ) async {
+    final authState = context.read<AuthBloc>().state;
+    final user =
+        authState is AuthAuthenticated ? authState.user : null;
+
+    // Solo booking: reuse verified account identity — no re-entry / ID upload.
+    if (state.selectedGuests == 1 &&
+        user != null &&
+        user.fullName.trim().length >= 2) {
+      context.read<BookingBloc>().add(BookingSubmitRequested(
+            propertyId: state.property.id,
+            guestId: '',
+            occupants: [occupantFromVerifiedUser(user)],
+          ));
+      return;
+    }
+
     final occupants = await showGuestVerificationSheet(
       context: context,
       guestCount: state.selectedGuests,
+      profileName: user?.fullName,
+      profilePhone: user?.phone,
+      profileEmail: user?.email,
     );
     if (occupants == null || !context.mounted) return;
 

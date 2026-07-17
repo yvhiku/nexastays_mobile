@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class PropertyTypeStep extends StatelessWidget {
@@ -6,13 +6,12 @@ class PropertyTypeStep extends StatelessWidget {
     super.key,
     required this.selectedType,
     required this.onTypeSelected,
+    this.listingFlow = false,
   });
 
-  /// The currently selected host type ('individual', 'portfolio', 'hotel', 'partner').
   final String? selectedType;
-
-  /// Callback when a type is selected.
   final ValueChanged<String> onTypeSelected;
+  final bool listingFlow;
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +19,9 @@ class PropertyTypeStep extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'What type of host are you?',
+          listingFlow
+              ? 'What kind of property is this?'
+              : 'What type of host are you?',
           style: GoogleFonts.playfairDisplay(
             fontSize: 22,
             fontWeight: FontWeight.w700,
@@ -29,63 +30,32 @@ class PropertyTypeStep extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'This helps us tailor the setup for you.',
+          listingFlow
+              ? 'We will tailor the rooms, pricing, and details to this property.'
+              : 'This helps us tailor the setup for you.',
           style: GoogleFonts.dmSans(
             fontSize: 13,
             color: const Color(0xFF6B7280),
           ),
         ),
         const SizedBox(height: 32),
-
-        // 2x2 Grid of Host Type Cards
         Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return GridView.count(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                // Adjust ratio based on typical tablet/desktop layout
-                childAspectRatio: constraints.maxWidth /
-                    (constraints.maxHeight > 0
-                        ? constraints.maxHeight
-                        : constraints.maxWidth),
-                children: [
-                  _HostTypeCard(
-                    id: 'individual',
-                    emoji: '🏠',
-                    title: 'Individual',
-                    subtitle: '1–4 properties',
-                    isSelected: selectedType == 'individual',
-                    onTap: () => onTypeSelected('individual'),
+          child: GridView.count(
+            crossAxisCount: 2,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 0.95,
+            children: (listingFlow ? _listingOptions : _hostOptions)
+                .map(
+                  (option) => _HostTypeCard(
+                    icon: option.icon,
+                    title: option.title,
+                    subtitle: option.subtitle,
+                    isSelected: selectedType == option.id,
+                    onTap: () => onTypeSelected(option.id),
                   ),
-                  _HostTypeCard(
-                    id: 'portfolio',
-                    emoji: '🏢',
-                    title: 'Portfolio',
-                    subtitle: '5–9 properties',
-                    isSelected: selectedType == 'portfolio',
-                    onTap: () => onTypeSelected('portfolio'),
-                  ),
-                  _HostTypeCard(
-                    id: 'hotel',
-                    emoji: '🏨',
-                    title: 'Hotel / Hostel',
-                    subtitle: 'Full property',
-                    isSelected: selectedType == 'hotel',
-                    onTap: () => onTypeSelected('hotel'),
-                  ),
-                  _HostTypeCard(
-                    id: 'partner',
-                    emoji: '🤝',
-                    title: 'Partner',
-                    subtitle: '10+ units',
-                    isSelected: selectedType == 'partner',
-                    onTap: () => onTypeSelected('partner'),
-                  ),
-                ],
-              );
-            },
+                )
+                .toList(),
           ),
         ),
       ],
@@ -93,18 +63,46 @@ class PropertyTypeStep extends StatelessWidget {
   }
 }
 
+class _TypeOption {
+  const _TypeOption(this.id, this.icon, this.title, this.subtitle);
+
+  final String id;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+}
+
+const _listingOptions = [
+  _TypeOption('APARTMENT', Icons.apartment_rounded, 'Apartment',
+      'Flat, studio, or residential unit'),
+  _TypeOption(
+      'VILLA', Icons.villa_rounded, 'Villa', 'Private house and outdoor space'),
+  _TypeOption(
+      'RIAD', Icons.balcony_rounded, 'Riad', 'Entire riad, rooms, or both'),
+  _TypeOption(
+      'HOTEL', Icons.hotel_rounded, 'Hotel', 'Room categories and inventory'),
+  _TypeOption('HOSTEL', Icons.bed_rounded, 'Hostel',
+      'Dorm beds, private rooms, or both'),
+];
+
+const _hostOptions = [
+  _TypeOption('individual', Icons.home_rounded, 'Individual', '1–4 properties'),
+  _TypeOption(
+      'portfolio', Icons.business_rounded, 'Portfolio', '5–9 properties'),
+  _TypeOption('hotel', Icons.hotel_rounded, 'Hotel / Hostel', 'Full property'),
+  _TypeOption('partner', Icons.handshake_rounded, 'Partner', '10+ units'),
+];
+
 class _HostTypeCard extends StatelessWidget {
   const _HostTypeCard({
-    required this.id,
-    required this.emoji,
+    required this.icon,
     required this.title,
     required this.subtitle,
     required this.isSelected,
     required this.onTap,
   });
 
-  final String id;
-  final String emoji;
+  final IconData icon;
   final String title;
   final String subtitle;
   final bool isSelected;
@@ -121,7 +119,8 @@ class _HostTypeCard extends StatelessWidget {
           color: isSelected ? const Color(0xFFFFF0F5) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? const Color(0xFFE8507A) : const Color(0xFFE5E7EB),
+            color:
+                isSelected ? const Color(0xFFE8507A) : const Color(0xFFE5E7EB),
             width: isSelected ? 2.0 : 1.5,
           ),
         ),
@@ -129,9 +128,12 @@ class _HostTypeCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              emoji,
-              style: const TextStyle(fontSize: 40),
+            Icon(
+              icon,
+              size: 40,
+              color: isSelected
+                  ? const Color(0xFFE8507A)
+                  : const Color(0xFF6B7280),
             ),
             const Spacer(),
             Text(

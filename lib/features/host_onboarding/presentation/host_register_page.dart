@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,15 +6,18 @@ import 'package:google_fonts/google_fonts.dart';
 import 'bloc/host_onboarding_bloc.dart';
 import 'bloc/host_onboarding_event.dart';
 import 'bloc/host_onboarding_state.dart';
+import 'steps/booking_model_step.dart';
 import 'steps/account_step.dart';
 import 'steps/amenities_step.dart';
 import 'steps/checkin_step.dart';
 import 'steps/contact_step.dart';
+import 'steps/listing_details_step.dart';
 import 'steps/location_step.dart';
 import 'steps/photos_step.dart';
 import 'steps/pricing_step.dart';
 import 'steps/property_type_step.dart';
 import 'steps/review_submit_step.dart';
+import 'steps/unit_types_step.dart';
 import 'steps/walkthrough_video_step.dart';
 
 /// 10-step host onboarding shell. [HostOnboardingBloc] is provided by GoRouter; do not nest another provider.
@@ -29,19 +32,6 @@ class HostRegisterPage extends StatelessWidget {
 
 class _HostRegisterView extends StatelessWidget {
   const _HostRegisterView();
-
-  static const Map<int, String> _stepLabelById = {
-    1: 'Type',
-    2: 'Account',
-    3: 'Contact',
-    5: 'Basics',
-    6: 'Rules',
-    7: 'Pricing',
-    8: 'Check-in',
-    9: 'Photos',
-    10: 'Video',
-    11: 'Submit',
-  };
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +58,9 @@ class _HostRegisterView extends StatelessWidget {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  'Host application submitted. We\'ll notify you when approved.',
+                  state.isListingFlow
+                      ? 'Listing submitted for review.'
+                      : 'Host application submitted. We\'ll notify you when approved.',
                   style: GoogleFonts.dmSans(color: Colors.white),
                 ),
                 backgroundColor: const Color(0xFF1A1A2E),
@@ -91,8 +83,8 @@ class _HostRegisterView extends StatelessWidget {
                     inputDecorationTheme: InputDecorationTheme(
                       filled: true,
                       fillColor: Colors.white,
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
@@ -103,7 +95,8 @@ class _HostRegisterView extends StatelessWidget {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFFE8507A), width: 1.5),
+                        borderSide: const BorderSide(
+                            color: Color(0xFFE8507A), width: 1.5),
                       ),
                     ),
                     switchTheme: SwitchThemeData(
@@ -131,7 +124,8 @@ class _HostRegisterView extends StatelessWidget {
                     child: Column(
                       children: [
                         Expanded(
-                          child: BlocBuilder<HostOnboardingBloc, HostOnboardingState>(
+                          child: BlocBuilder<HostOnboardingBloc,
+                              HostOnboardingState>(
                             builder: (context, state) {
                               return Padding(
                                 padding: const EdgeInsets.all(24.0),
@@ -150,8 +144,8 @@ class _HostRegisterView extends StatelessWidget {
                                     const SizedBox(height: 6),
                                     Text(
                                       state.isListingFlow
-                                          ? 'List Property (10 steps)'
-                                          : 'Become a Host (10 steps)',
+                                          ? 'List Property (${state.totalSteps} steps)'
+                                          : 'Become a Host (${state.totalSteps} steps)',
                                       style: GoogleFonts.dmSans(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
@@ -161,7 +155,8 @@ class _HostRegisterView extends StatelessWidget {
                                     const SizedBox(height: 16),
                                     Expanded(
                                       // Render current step widget
-                                      child: _buildCurrentStepWidget(state.currentStep),
+                                      child: _buildCurrentStepWidget(
+                                          state.currentStep),
                                     ),
                                   ],
                                 ),
@@ -189,7 +184,11 @@ class _HostRegisterView extends StatelessWidget {
       width: 72,
       color: const Color(0xFF1A0A0F), // Dark bg with rose tint
       child: BlocBuilder<HostOnboardingBloc, HostOnboardingState>(
-        buildWhen: (previous, current) => previous.currentStep != current.currentStep,
+        buildWhen: (previous, current) =>
+            previous.currentStep != current.currentStep ||
+            previous.propertyType != current.propertyType ||
+            previous.bookingModel != current.bookingModel ||
+            previous.flow != current.flow,
         builder: (context, state) {
           final visibleSteps = state.visibleSteps;
           return ListView.builder(
@@ -239,7 +238,7 @@ class _HostRegisterView extends StatelessWidget {
 
                   // Tiny Label
                   Text(
-                    _stepLabelById[stepId] ?? 'Step',
+                    state.stepLabel(stepId),
                     style: GoogleFonts.dmSans(
                       fontSize: 7,
                       fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
@@ -368,12 +367,25 @@ class _HostRegisterView extends StatelessWidget {
         switch (step) {
           case 1:
             return PropertyTypeStep(
-              selectedType: state.hostType,
-              onTypeSelected: (hostType) {
-                context
-                    .read<HostOnboardingBloc>()
-                    .add(HostTypeSelected(hostType: hostType));
+              listingFlow: state.isListingFlow,
+              selectedType:
+                  state.isListingFlow ? state.propertyType : state.hostType,
+              onTypeSelected: (type) {
+                final bloc = context.read<HostOnboardingBloc>();
+                if (state.isListingFlow) {
+                  bloc.add(HostPropertyTypeSaved(propertyType: type));
+                } else {
+                  bloc.add(HostTypeSelected(hostType: type));
+                }
               },
+            );
+          case 12:
+            return BookingModelStep(
+              propertyType: state.propertyType!,
+              selectedModel: state.bookingModel,
+              onSelected: (model) => context
+                  .read<HostOnboardingBloc>()
+                  .add(HostBookingModelSaved(bookingModel: model)),
             );
           case 2:
             return AccountStep(
@@ -387,6 +399,17 @@ class _HostRegisterView extends StatelessWidget {
             );
           case 5:
             return LocationStep(
+              state: state,
+              bloc: context.read<HostOnboardingBloc>(),
+              showPhysicalBasics: !state.isListingFlow,
+            );
+          case 13:
+            return ListingDetailsStep(
+              state: state,
+              bloc: context.read<HostOnboardingBloc>(),
+            );
+          case 14:
+            return UnitTypesStep(
               state: state,
               bloc: context.read<HostOnboardingBloc>(),
             );
@@ -453,7 +476,8 @@ class _HostRegisterView extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.construction, size: 64, color: Colors.grey.shade300),
+                  Icon(Icons.construction,
+                      size: 64, color: Colors.grey.shade300),
                   const SizedBox(height: 16),
                   Text(
                     'Step $step Component',

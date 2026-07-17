@@ -5,16 +5,19 @@ import '../../../search/presentation/widgets/city_selector.dart';
 import '../bloc/host_onboarding_bloc.dart';
 import '../bloc/host_onboarding_event.dart';
 import '../bloc/host_onboarding_state.dart';
+import '../widgets/host_location_map_picker.dart';
 
 class LocationStep extends StatefulWidget {
   const LocationStep({
     super.key,
     required this.state,
     required this.bloc,
+    this.showPhysicalBasics = true,
   });
 
   final HostOnboardingState state;
   final HostOnboardingBloc bloc;
+  final bool showPhysicalBasics;
 
   @override
   State<LocationStep> createState() => _LocationStepState();
@@ -55,7 +58,7 @@ class _LocationStepState extends State<LocationStep> {
     super.dispose();
   }
 
-  void _dispatchBasicsSaved() {
+  void _dispatchBasicsSaved({double? geoLat, double? geoLng}) {
     widget.bloc.add(
       HostBasicsSaved(
         propertyName: _nameController.text.trim(),
@@ -64,6 +67,8 @@ class _LocationStepState extends State<LocationStep> {
         exactAddress: _addressController.text.trim(),
         beds: widget.state.beds,
         bathrooms: widget.state.bathrooms,
+        geoLat: geoLat ?? widget.state.geoLat,
+        geoLng: geoLng ?? widget.state.geoLng,
       ),
     );
   }
@@ -77,6 +82,8 @@ class _LocationStepState extends State<LocationStep> {
         exactAddress: _addressController.text.trim(),
         beds: beds,
         bathrooms: widget.state.bathrooms,
+        geoLat: widget.state.geoLat,
+        geoLng: widget.state.geoLng,
       ),
     );
   }
@@ -90,6 +97,8 @@ class _LocationStepState extends State<LocationStep> {
         exactAddress: _addressController.text.trim(),
         beds: widget.state.beds,
         bathrooms: bathrooms,
+        geoLat: widget.state.geoLat,
+        geoLng: widget.state.geoLng,
       ),
     );
   }
@@ -178,7 +187,7 @@ class _LocationStepState extends State<LocationStep> {
           const SizedBox(height: 14),
 
           _buildInputField(
-            label: 'Neighborhood *',
+            label: 'Neighborhood',
             hint: 'e.g. Medina',
             controller: _neighborhoodController,
           ),
@@ -189,6 +198,21 @@ class _LocationStepState extends State<LocationStep> {
             hint: 'Street, building, floor',
             controller: _addressController,
             activeColor: const Color(0xFFE8507A),
+          ),
+          const SizedBox(height: 16),
+
+          HostLocationMapPicker(
+            city: _cityController.text,
+            neighborhood: _neighborhoodController.text,
+            address: _addressController.text,
+            latitude: widget.state.geoLat,
+            longitude: widget.state.geoLng,
+            onCoordinatesChanged: (pin) {
+              _dispatchBasicsSaved(
+                geoLat: pin.latitude,
+                geoLng: pin.longitude,
+              );
+            },
           ),
           const SizedBox(height: 12),
 
@@ -221,26 +245,28 @@ class _LocationStepState extends State<LocationStep> {
           ),
           const SizedBox(height: 24),
 
-          // Steppers (Beds / Bathrooms)
-          Row(
-            children: [
-              Expanded(
-                child: _buildStepper(
-                  label: 'Beds',
-                  value: widget.state.beds,
-                  onChanged: _updateBeds,
+          if (widget.showPhysicalBasics) ...[
+            // Steppers (Beds / Bathrooms)
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStepper(
+                    label: 'Beds',
+                    value: widget.state.beds,
+                    onChanged: _updateBeds,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStepper(
-                  label: 'Bathrooms',
-                  value: widget.state.bathrooms,
-                  onChanged: _updateBathrooms,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildStepper(
+                    label: 'Bathrooms',
+                    value: widget.state.bathrooms,
+                    onChanged: _updateBathrooms,
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
           const SizedBox(height: 32),
         ],
       ),
@@ -289,8 +315,8 @@ class _LocationStepState extends State<LocationStep> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  BorderSide(color: activeColor ?? const Color(0xFF1A1A2E), width: 1.5),
+              borderSide: BorderSide(
+                  color: activeColor ?? const Color(0xFF1A1A2E), width: 1.5),
             ),
           ),
         ),
@@ -338,7 +364,9 @@ class _LocationStepState extends State<LocationStep> {
               ),
               _buildStepperButton(
                 icon: Icons.add,
-                onTap: value < 20 ? () => onChanged(value + 1) : null, // Arbitrary max
+                onTap: value < 20
+                    ? () => onChanged(value + 1)
+                    : null, // Arbitrary max
               ),
             ],
           ),

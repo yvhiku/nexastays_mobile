@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AmenitiesStep extends StatelessWidget {
@@ -156,7 +156,8 @@ class AmenitiesStep extends StatelessWidget {
           // ── COUNTER BELOW GRID ──
           Row(
             children: [
-              const Icon(Icons.check_circle_outline, color: Color(0xFFE8507A), size: 16),
+              const Icon(Icons.check_circle_outline,
+                  color: Color(0xFFE8507A), size: 16),
               const SizedBox(width: 6),
               Text(
                 '${selectedAmenities.length} amenities selected',
@@ -199,7 +200,9 @@ class AmenitiesStep extends StatelessWidget {
               color: isSelected ? const Color(0xFFFFF0F5) : Colors.white,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: isSelected ? const Color(0xFFE8507A) : const Color(0xFFE5E7EB),
+                color: isSelected
+                    ? const Color(0xFFE8507A)
+                    : const Color(0xFFE5E7EB),
                 width: isSelected ? 1.5 : 1.0,
               ),
             ),
@@ -209,15 +212,19 @@ class AmenitiesStep extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(item['emoji']!, style: const TextStyle(fontSize: 20)),
+                      Text(item['emoji']!,
+                          style: const TextStyle(fontSize: 20)),
                       const SizedBox(height: 4),
                       Text(
                         item['label']!,
                         textAlign: TextAlign.center,
                         style: GoogleFonts.dmSans(
                           fontSize: 11,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                          color: isSelected ? const Color(0xFFE8507A) : const Color(0xFF6B7280),
+                          fontWeight:
+                              isSelected ? FontWeight.w700 : FontWeight.w500,
+                          color: isSelected
+                              ? const Color(0xFFE8507A)
+                              : const Color(0xFF6B7280),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../bloc/host_onboarding_bloc.dart';
@@ -43,7 +43,8 @@ class _ContactStepState extends State<ContactStep> {
     // For this UI, we initialize empty and dispatch to state on changes.
     _nameController = TextEditingController();
     _phoneController = TextEditingController();
-    _instructionsController = TextEditingController(text: widget.state.checkInInstructions ?? '');
+    _instructionsController =
+        TextEditingController(text: widget.state.checkInInstructions ?? '');
     _lateInstructionsController = TextEditingController();
 
     _nameController.addListener(_dispatchUpdate);
@@ -72,15 +73,17 @@ class _ContactStepState extends State<ContactStep> {
         '${_nameController.text.trim()} | ${_phoneController.text.trim()}';
 
     // Combine standard instructions + late instructions + time
-    String fullInstructions = '${_instructionsController.text.trim()}\nStandard Time: $_selectedTime';
+    String fullInstructions =
+        '${_instructionsController.text.trim()}\nStandard Time: $_selectedTime';
     if (_allowLateCheckIn && _lateInstructionsController.text.isNotEmpty) {
-      fullInstructions += '\nLate Check-in: ${_lateInstructionsController.text.trim()}';
+      fullInstructions +=
+          '\nLate Check-in: ${_lateInstructionsController.text.trim()}';
     }
 
     widget.bloc.add(
       HostContactSaved(
         whatsapp: '', // Or add whatsapp logic if added to this step later
-        checkInContact: combinedContact.length > 3 ? combinedContact : '', 
+        checkInContact: combinedContact.length > 3 ? combinedContact : '',
         checkInInstructions: fullInstructions.trim(),
       ),
     );
@@ -210,7 +213,8 @@ class _ContactStepState extends State<ContactStep> {
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
                     color: isSelected ? const Color(0xFFE8507A) : Colors.white,
                     borderRadius: BorderRadius.circular(50),
@@ -224,8 +228,10 @@ class _ContactStepState extends State<ContactStep> {
                     time,
                     style: GoogleFonts.dmSans(
                       fontSize: 13,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                      color: isSelected ? Colors.white : const Color(0xFF6B7280),
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.w400,
+                      color:
+                          isSelected ? Colors.white : const Color(0xFF6B7280),
                     ),
                   ),
                 ),
@@ -263,10 +269,12 @@ class _ContactStepState extends State<ContactStep> {
                 ),
                 if (_allowLateCheckIn)
                   Padding(
-                    padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                    padding:
+                        const EdgeInsets.only(left: 16, right: 16, bottom: 16),
                     child: _buildInputField(
                       label: '', // No label needed here based on spec flow
-                      hint: 'Late check-in instructions (e.g. key lockbox code)',
+                      hint:
+                          'Late check-in instructions (e.g. key lockbox code)',
                       controller: _lateInstructionsController,
                       maxLines: 2,
                     ),
@@ -318,7 +326,8 @@ class _ContactStepState extends State<ContactStep> {
             ),
             prefixText: prefixText,
             prefixStyle: const TextStyle(fontSize: 14),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
@@ -329,7 +338,8 @@ class _ContactStepState extends State<ContactStep> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFE8507A), width: 1.5),
+              borderSide:
+                  const BorderSide(color: Color(0xFFE8507A), width: 1.5),
             ),
           ),
         ),

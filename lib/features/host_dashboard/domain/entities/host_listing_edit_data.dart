@@ -4,6 +4,7 @@ class HostListingEditData {
     required this.title,
     required this.listingType,
     required this.city,
+    required this.neighborhood,
     required this.address,
     required this.description,
     required this.status,
@@ -24,12 +25,15 @@ class HostListingEditData {
     required this.contactRole,
     required this.accessInstructions,
     required this.photoUrls,
+    this.geoLat,
+    this.geoLng,
   });
 
   final String id;
   final String title;
   final String listingType;
   final String city;
+  final String neighborhood;
   final String address;
   final String description;
   final String status;
@@ -50,6 +54,8 @@ class HostListingEditData {
   final String contactRole;
   final String accessInstructions;
   final List<String> photoUrls;
+  final double? geoLat;
+  final double? geoLng;
 
   bool get isPaused => status.toUpperCase() == 'PAUSED';
   bool get canPause {
@@ -62,6 +68,7 @@ class HostListingEditData {
   HostListingEditData copyWith({
     String? title,
     String? city,
+    String? neighborhood,
     String? address,
     String? description,
     String? status,
@@ -75,12 +82,15 @@ class HostListingEditData {
     String? smokingPolicy,
     List<String>? amenities,
     String? accessInstructions,
+    double? geoLat,
+    double? geoLng,
   }) {
     return HostListingEditData(
       id: id,
       title: title ?? this.title,
       listingType: listingType,
       city: city ?? this.city,
+      neighborhood: neighborhood ?? this.neighborhood,
       address: address ?? this.address,
       description: description ?? this.description,
       status: status ?? this.status,
@@ -101,6 +111,8 @@ class HostListingEditData {
       contactRole: contactRole,
       accessInstructions: accessInstructions ?? this.accessInstructions,
       photoUrls: photoUrls,
+      geoLat: geoLat ?? this.geoLat,
+      geoLng: geoLng ?? this.geoLng,
     );
   }
 }

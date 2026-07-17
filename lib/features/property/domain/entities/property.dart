@@ -75,13 +75,13 @@ class Property extends Equatable {
   });
 
   String get cityNeighborhood => '$neighborhood, $city';
-  
+
   bool get hasVideo => walkthroughVideoUrl != null;
-  
+
   bool get isFullyVerified => isVerified && hasVideo;
-  
+
   String get priceDisplay => '${nightlyRate.toInt()} MAD/night';
-  
+
   double get guestTotal {
     final fees = StaysFeeConfig.instance.calculateFees(nightlyRate);
     return fees.totalGuestPays;
@@ -91,7 +91,7 @@ class Property extends Equatable {
     final fees = StaysFeeConfig.instance.calculateFees(nightlyRate);
     return fees.hostPayout;
   }
-  
+
   String get maskedAddress => '$neighborhood, $city';
 
   String get shortLocationLabel {
@@ -105,7 +105,18 @@ class Property extends Equatable {
     return 'Morocco';
   }
 
-  bool get hasMapCoordinates => latitude != null && longitude != null;
+  bool get hasMapCoordinates {
+    final lat = latitude;
+    final lng = longitude;
+    return lat != null &&
+        lng != null &&
+        lat.isFinite &&
+        lng.isFinite &&
+        lat >= -90 &&
+        lat <= 90 &&
+        lng >= -180 &&
+        lng <= 180;
+  }
 
   String get displayAddress {
     if (exactAddress.trim().isNotEmpty) return exactAddress.trim();
@@ -134,15 +145,6 @@ class Property extends Equatable {
     }
     if (cityLabel.isNotEmpty) return '$cityLabel, Morocco';
     return 'Morocco';
-  }
-
-  String? get staticMapUrl {
-    if (!hasMapCoordinates) return null;
-    final lat = latitude!.toStringAsFixed(6);
-    final lng = longitude!.toStringAsFixed(6);
-    return 'https://staticmap.openstreetmap.de/staticmap.php'
-        '?center=$lat,$lng&zoom=15&size=600x280&maptype=mapnik'
-        '&markers=$lat,$lng,red-pushpin';
   }
 
   Property copyWith({

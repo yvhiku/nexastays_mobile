@@ -89,6 +89,12 @@ flutter run `
 
 **Requirements for physical device:** Identity (3001) and Stays (3002) must be running on your PC; Windows Firewall must allow inbound on those ports; phone must be on the same network.
 
+## Explore map
+
+Maps use **OpenStreetMap** tiles via `flutter_map` (no API key). Host pin
+placement geocodes through Nominatim. Listings need `geo_lat` / `geo_lng` to
+appear on the Explore map.
+
 ## API routing
 
 | Service | Port | Used for |

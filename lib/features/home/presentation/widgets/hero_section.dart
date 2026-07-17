@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -43,7 +43,8 @@ class HeroSection extends StatelessWidget {
               ),
               errorWidget: (_, __, ___) => Container(
                 color: Colors.grey.shade300,
-                child: const Icon(Icons.broken_image, size: 48, color: Colors.white54),
+                child: const Icon(Icons.broken_image,
+                    size: 48, color: Colors.white54),
               ),
             ),
 
@@ -67,7 +68,8 @@ class HeroSection extends StatelessWidget {
               top: 12,
               left: 12,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: const Color(0xFFE8507A),
                   borderRadius: BorderRadius.circular(20),
@@ -133,16 +135,25 @@ class HeroSection extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
 
-                      // Rating
-                      const Icon(Icons.star, color: Colors.amber, size: 14),
-                      const SizedBox(width: 2),
-                      Text(
-                        property.rating.toStringAsFixed(1),
-                        style: GoogleFonts.dmSans(
-                          fontSize: 12,
-                          color: Colors.white,
+                      if (property.reviewCount > 0 && property.rating > 0) ...[
+                        const Icon(Icons.star, color: Colors.amber, size: 14),
+                        const SizedBox(width: 2),
+                        Text(
+                          property.rating.toStringAsFixed(1),
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
+                      ] else
+                        Text(
+                          'New',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
 
                       const Spacer(),
 

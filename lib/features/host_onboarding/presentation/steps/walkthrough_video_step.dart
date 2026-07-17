@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -88,8 +88,8 @@ class _WalkthroughVideoStepState extends State<WalkthroughVideoStep> {
 
   @override
   Widget build(BuildContext context) {
-    final bool hasVideo = widget.videoPath != null &&
-        widget.videoPath!.isNotEmpty;
+    final bool hasVideo =
+        widget.videoPath != null && widget.videoPath!.isNotEmpty;
 
     return SingleChildScrollView(
       child: Column(
@@ -168,14 +168,16 @@ class _WalkthroughVideoStepState extends State<WalkthroughVideoStep> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: const Color(0xFF10B981).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.check_circle, size: 14, color: Color(0xFF10B981)),
+                      const Icon(Icons.check_circle,
+                          size: 14, color: Color(0xFF10B981)),
                       const SizedBox(width: 4),
                       Text(
                         'Video ready',
@@ -227,7 +229,6 @@ class _WalkthroughVideoStepState extends State<WalkthroughVideoStep> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
                   _buildSequenceRow(1, 'Show your face (3–5 sec)'),
                   const SizedBox(height: 10),
                   _buildSequenceRow(2, 'Walk to the door'),
@@ -236,7 +237,6 @@ class _WalkthroughVideoStepState extends State<WalkthroughVideoStep> {
                   const SizedBox(height: 10),
                   _buildSequenceRow(4, 'Full walkthrough'),
                   const SizedBox(height: 20),
-
                   Text(
                     '45 sec – 2 min • Continuous • Must match listing',
                     style: GoogleFonts.dmSans(
@@ -301,7 +301,7 @@ class _WalkthroughVideoStepState extends State<WalkthroughVideoStep> {
               ],
             ),
           ],
-          
+
           const SizedBox(height: 40),
 
           // ── SUBMIT BUTTON ──
@@ -333,7 +333,8 @@ class _WalkthroughVideoStepState extends State<WalkthroughVideoStep> {
                       style: GoogleFonts.dmSans(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: hasVideo ? Colors.white : const Color(0xFF9CA3AF),
+                        color:
+                            hasVideo ? Colors.white : const Color(0xFF9CA3AF),
                       ),
                     ),
             ),

@@ -23,6 +23,7 @@ abstract class HostRepository {
     required String listingId,
     String? title,
     String? city,
+    String? neighborhood,
     String? address,
     String? description,
     String? checkInTime,
@@ -35,6 +36,8 @@ abstract class HostRepository {
     String? smokingPolicy,
     List<String>? amenities,
     String? accessInstructions,
+    double? geoLat,
+    double? geoLng,
   });
 
   Future<Either<Failure, String>> pauseListing(String listingId);
