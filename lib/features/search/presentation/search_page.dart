@@ -3,9 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
 
 import '../../../navigation/app_routes.dart';
+import '../../../app/di/injection.dart';
 import '../../home/domain/entities/property.dart' as home;
+import '../../home/domain/repositories/property_repository.dart' as home_repo;
 import '../../property/presentation/widgets/stay_card.dart';
 import '../domain/entities/search_filter.dart';
 import 'bloc/search_bloc.dart';
@@ -130,31 +133,57 @@ class _SearchPageViewState extends State<_SearchPageView> {
       );
     }
     if (state is SearchResults) {
-      return ListView.separated(
+      final itemCount =
+          state.properties.length + (state.hasMore || state.isLoadingMore ? 1 : 0);
+      return NotificationListener<ScrollNotification>(
         key: const ValueKey('list'),
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 32),
-        itemCount: state.properties.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 28),
-        itemBuilder: (context, index) {
-          final property = state.properties[index];
-          return StayCard(
-            stay: StayCardData.fromHomeProperty(property),
-            onTap: () => context.push(AppRoutes.propertyDetailOf(property.id)),
-          );
+        onNotification: (notification) {
+          if (notification.metrics.pixels >=
+                  notification.metrics.maxScrollExtent - 420 &&
+              state.hasMore &&
+              !state.isLoadingMore) {
+            context.read<SearchBloc>().add(const SearchLoadMoreRequested());
+          }
+          return false;
         },
+        child: ListView.separated(
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 32),
+          itemCount: itemCount,
+          separatorBuilder: (_, __) => const SizedBox(height: 28),
+          itemBuilder: (context, index) {
+            if (index >= state.properties.length) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              );
+            }
+            final property = state.properties[index];
+            return StayCard(
+              stay: StayCardData.fromHomeProperty(property),
+              onTap: () =>
+                  context.push(AppRoutes.propertyDetailOf(property.id)),
+            );
+          },
+        ),
       );
     }
     return const SizedBox.shrink();
   }
 
   Widget _buildMap(SearchState state) {
-    final List<home.Property> properties =
-        state is SearchResults ? state.properties : const [];
     final filter = _extractFilter(state);
-    return ExploreMap(
+    final List<home.Property> fallback =
+        state is SearchResults ? state.properties : const [];
+    return _ExploreMapHost(
       key: const ValueKey('map'),
-      properties: properties,
-      preferListingsCenter: filter.city != null && filter.city!.trim().isNotEmpty,
+      filter: filter,
+      fallbackProperties: fallback,
     );
   }
 
@@ -163,6 +192,78 @@ class _SearchPageViewState extends State<_SearchPageView> {
     if (state is SearchResults) return state.activeFilter;
     if (state is SearchEmpty) return state.filter;
     return const SearchFilter();
+  }
+}
+
+/// Loads map pins from `/stays/explore/map` when the viewport moves.
+class _ExploreMapHost extends StatefulWidget {
+  const _ExploreMapHost({
+    super.key,
+    required this.filter,
+    required this.fallbackProperties,
+  });
+
+  final SearchFilter filter;
+  final List<home.Property> fallbackProperties;
+
+  @override
+  State<_ExploreMapHost> createState() => _ExploreMapHostState();
+}
+
+class _ExploreMapHostState extends State<_ExploreMapHost> {
+  List<home.Property> _pins = const [];
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _pins = widget.fallbackProperties;
+  }
+
+  @override
+  void didUpdateWidget(covariant _ExploreMapHost oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.filter != widget.filter) {
+      _pins = widget.fallbackProperties;
+    }
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _onBoundsChanged({
+    required double north,
+    required double south,
+    required double east,
+    required double west,
+  }) async {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () async {
+      final result = await getIt<home_repo.PropertyRepository>().exploreMapPins(
+        north: north,
+        south: south,
+        east: east,
+        west: west,
+        filter: widget.filter,
+      );
+      if (!mounted) return;
+      result.fold((_) {}, (pins) {
+        setState(() => _pins = pins);
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ExploreMap(
+      properties: _pins.isNotEmpty ? _pins : widget.fallbackProperties,
+      preferListingsCenter:
+          widget.filter.city != null && widget.filter.city!.trim().isNotEmpty,
+      onBoundsChanged: _onBoundsChanged,
+    );
   }
 }
 

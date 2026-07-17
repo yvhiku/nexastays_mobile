@@ -32,16 +32,50 @@ class SearchResults extends SearchState {
   final SearchFilter activeFilter;
   final int totalCount;
   final SortOrder sortOrder;
+  final bool hasMore;
+  final String? nextCursor;
+  final bool isLoadingMore;
 
   const SearchResults({
     required this.properties,
     required this.activeFilter,
     required this.totalCount,
     required this.sortOrder,
+    this.hasMore = false,
+    this.nextCursor,
+    this.isLoadingMore = false,
   });
 
+  SearchResults copyWith({
+    List<Property>? properties,
+    SearchFilter? activeFilter,
+    int? totalCount,
+    SortOrder? sortOrder,
+    bool? hasMore,
+    String? nextCursor,
+    bool? isLoadingMore,
+  }) {
+    return SearchResults(
+      properties: properties ?? this.properties,
+      activeFilter: activeFilter ?? this.activeFilter,
+      totalCount: totalCount ?? this.totalCount,
+      sortOrder: sortOrder ?? this.sortOrder,
+      hasMore: hasMore ?? this.hasMore,
+      nextCursor: nextCursor ?? this.nextCursor,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+    );
+  }
+
   @override
-  List<Object?> get props => [properties, activeFilter, totalCount, sortOrder];
+  List<Object?> get props => [
+        properties,
+        activeFilter,
+        totalCount,
+        sortOrder,
+        hasMore,
+        nextCursor,
+        isLoadingMore,
+      ];
 }
 
 /// Emitted when a search returns zero results.

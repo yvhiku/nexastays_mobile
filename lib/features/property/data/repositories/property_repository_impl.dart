@@ -89,6 +89,73 @@ class PropertyRepositoryImpl implements PropertyRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, ExploreSearchPage>> exploreSearch({
+    SearchFilter? filter,
+    String? cursor,
+    int limit = 24,
+  }) async {
+    try {
+      final page = await remoteDataSource.exploreProperties(
+        city: filter?.city,
+        checkIn: filter?.checkIn,
+        checkOut: filter?.checkOut,
+        guests: filter != null && filter.guestCount > 1 ? filter.guestCount : null,
+        verifiedOnly: filter?.verifiedOnly,
+        instantBookOnly: filter?.instantBookOnly,
+        sort: filter?.sortOrder == SortOrder.newest ? 'newest' : null,
+        cursor: cursor,
+        limit: limit,
+      );
+      var properties = page.items.cast<Property>();
+      if (filter != null) {
+        properties = applySearchFilter(properties, filter);
+      }
+      return Right(ExploreSearchPage(
+        properties: properties,
+        hasMore: page.hasMore,
+        nextCursor: page.nextCursor,
+      ));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on DioException {
+      return const Left(NetworkFailure());
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Property>>> exploreMap({
+    required double north,
+    required double south,
+    required double east,
+    required double west,
+    SearchFilter? filter,
+  }) async {
+    try {
+      final result = await remoteDataSource.exploreMapPins(
+        north: north,
+        south: south,
+        east: east,
+        west: west,
+        city: filter?.city,
+        checkIn: filter?.checkIn,
+        checkOut: filter?.checkOut,
+        guests: filter != null && filter.guestCount > 1 ? filter.guestCount : null,
+        verifiedOnly: filter?.verifiedOnly,
+        instantBookOnly: filter?.instantBookOnly,
+      );
+      return Right(result.items.cast<Property>());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on DioException {
+      return const Left(NetworkFailure());
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
   // ── getPropertyById ────────────────────────────────────────────────────
 
   @override

@@ -14,6 +14,7 @@ class ListingsBloc extends Bloc<ListingsEvent, ListingsState> {
   final PropertyRepository propertyRepository;
   final WishlistRepository wishlistRepository;
   final SessionManager sessionManager;
+  String? _nextCursor;
 
   ListingsBloc({
     required this.getProperties,
@@ -44,26 +45,24 @@ class ListingsBloc extends Bloc<ListingsEvent, ListingsState> {
     emit(const ListingsLoading());
 
     final savedIds = await _loadSavedIds();
+    _nextCursor = null;
 
-    final failureOrProperties = await getProperties(
-      GetPropertiesParams(
-        filter: event.filter,
-        featured: event.featured,
-        trending: event.trending,
-      ),
+    final failureOrPage = await propertyRepository.exploreSearch(
+      filter: event.filter,
     );
 
-    failureOrProperties.fold(
+    failureOrPage.fold(
       (failure) => emit(ListingsError(message: failure.message)),
-      (properties) {
-        if (properties.isEmpty) {
+      (page) {
+        if (page.properties.isEmpty) {
           emit(ListingsEmpty(filter: event.filter));
         } else {
+          _nextCursor = page.nextCursor;
           emit(ListingsLoaded(
-            properties: _sortProperties(properties, SortOrder.bestMatch),
+            properties: _sortProperties(page.properties, SortOrder.bestMatch),
             activeFilter: event.filter,
-            totalCount: properties.length,
-            hasMore: false,
+            totalCount: page.properties.length,
+            hasMore: page.hasMore,
             currentPage: 1,
             savedPropertyIds: savedIds,
           ));
@@ -80,28 +79,28 @@ class ListingsBloc extends Bloc<ListingsEvent, ListingsState> {
     if (currentState is! ListingsLoaded) return;
 
     emit(ListingsRefreshing(currentProperties: currentState.properties));
+    _nextCursor = null;
 
-    final failureOrProperties = await getProperties(
-      GetPropertiesParams(
-        filter: currentState.activeFilter,
-      ),
+    final failureOrPage = await propertyRepository.exploreSearch(
+      filter: currentState.activeFilter,
     );
 
-    failureOrProperties.fold(
+    failureOrPage.fold(
       (failure) => emit(ListingsError(
         message: failure.message,
         cachedProperties: currentState.properties,
       )),
-      (properties) {
-        if (properties.isEmpty) {
+      (page) {
+        if (page.properties.isEmpty) {
           emit(ListingsEmpty(filter: currentState.activeFilter));
         } else {
+          _nextCursor = page.nextCursor;
           emit(ListingsLoaded(
-            properties: _sortProperties(properties, currentState.sortOrder),
+            properties: _sortProperties(page.properties, currentState.sortOrder),
             activeFilter: currentState.activeFilter,
             sortOrder: currentState.sortOrder,
-            totalCount: properties.length,
-            hasMore: false,
+            totalCount: page.properties.length,
+            hasMore: page.hasMore,
             currentPage: 1,
             savedPropertyIds: currentState.savedPropertyIds,
           ));
@@ -115,30 +114,36 @@ class ListingsBloc extends Bloc<ListingsEvent, ListingsState> {
     Emitter<ListingsState> emit,
   ) async {
     final currentState = state;
-    if (currentState is! ListingsLoaded || !currentState.hasMore) return;
+    if (currentState is! ListingsLoaded ||
+        !currentState.hasMore ||
+        _nextCursor == null) {
+      return;
+    }
 
     emit(ListingsLoadingMore(currentProperties: currentState.properties));
 
-    // Simulate loading next page (in real app, pass page down to repo)
-    final failureOrProperties = await getProperties(
-      GetPropertiesParams(
-        filter: currentState.activeFilter,
-      ),
+    final failureOrPage = await propertyRepository.exploreSearch(
+      filter: currentState.activeFilter,
+      cursor: _nextCursor,
     );
 
-    failureOrProperties.fold(
+    failureOrPage.fold(
       (failure) => emit(ListingsError(
         message: failure.message,
         cachedProperties: currentState.properties,
       )),
-      (properties) {
-        final allProps = [...currentState.properties, ...properties];
+      (page) {
+        final seen = currentState.properties.map((p) => p.id).toSet();
+        final appended =
+            page.properties.where((p) => !seen.contains(p.id)).toList();
+        final allProps = [...currentState.properties, ...appended];
+        _nextCursor = page.nextCursor;
         emit(ListingsLoaded(
           properties: _sortProperties(allProps, currentState.sortOrder),
           activeFilter: currentState.activeFilter,
           sortOrder: currentState.sortOrder,
           totalCount: allProps.length,
-          hasMore: false, // Set to true if proper pagination exists
+          hasMore: page.hasMore,
           currentPage: currentState.currentPage + 1,
           savedPropertyIds: currentState.savedPropertyIds,
         ));
@@ -172,22 +177,24 @@ class ListingsBloc extends Bloc<ListingsEvent, ListingsState> {
     emit(const ListingsLoading());
 
     final savedIds = await _loadSavedIds();
+    _nextCursor = null;
 
-    final failureOrProperties = await getProperties(
-      GetPropertiesParams(filter: event.filter),
+    final failureOrPage = await propertyRepository.exploreSearch(
+      filter: event.filter,
     );
 
-    failureOrProperties.fold(
+    failureOrPage.fold(
       (failure) => emit(ListingsError(message: failure.message)),
-      (properties) {
-        if (properties.isEmpty) {
+      (page) {
+        if (page.properties.isEmpty) {
           emit(ListingsEmpty(filter: event.filter));
         } else {
+          _nextCursor = page.nextCursor;
           emit(ListingsLoaded(
-            properties: _sortProperties(properties, SortOrder.bestMatch),
+            properties: _sortProperties(page.properties, SortOrder.bestMatch),
             activeFilter: event.filter,
-            totalCount: properties.length,
-            hasMore: false,
+            totalCount: page.properties.length,
+            hasMore: page.hasMore,
             currentPage: 1,
             savedPropertyIds: savedIds,
           ));

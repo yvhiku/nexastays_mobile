@@ -37,6 +37,8 @@ class ApiEndpoints {
 
   // Stays — public config & listings
   static const String staysConfigFees = '/stays/config/fees';
+  static const String staysExplore = '/stays/explore';
+  static const String staysExploreMap = '/stays/explore/map';
   static const String staysListingsSearch = '/stays/listings/search';
   static const String staysListingById = '/stays/listings/{id}';
   static const String staysListingReviews = '/stays/listings/{id}/reviews';

@@ -10,7 +10,7 @@ import 'search_state.dart';
 /// BLoC that drives the search feature.
 ///
 /// Handles search initiation, filter updates (debounced 300 ms),
-/// clearing, and client-side sort changes.
+/// clearing, load-more cursor pages, and client-side sort changes.
 class SearchBloc extends Bloc<SearchEvent, SearchState> {
   final SearchPropertiesUseCase _searchUseCase;
 
@@ -33,9 +33,8 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     on<SearchDatesChanged>(_onDatesChanged);
     on<SearchGuestsChanged>(_onGuestsChanged);
     on<SearchSortChanged>(_onSortChanged);
+    on<SearchLoadMoreRequested>(_onLoadMore);
   }
-
-  // ── Event handlers ──────────────────────────────────────────────────────
 
   Future<void> _onSearchInitiated(
     SearchInitiated event,
@@ -104,7 +103,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
       case SortOrder.newest:
         sorted.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       case SortOrder.bestMatch:
-        break; // keep original API order
+        break;
     }
 
     emit(SearchResults(
@@ -112,10 +111,54 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
       activeFilter: current.activeFilter,
       totalCount: current.totalCount,
       sortOrder: event.sortOrder,
+      hasMore: current.hasMore,
+      nextCursor: current.nextCursor,
     ));
   }
 
-  // ── Shared search logic ─────────────────────────────────────────────────
+  Future<void> _onLoadMore(
+    SearchLoadMoreRequested event,
+    Emitter<SearchState> emit,
+  ) async {
+    final current = state;
+    if (current is! SearchResults ||
+        !current.hasMore ||
+        current.nextCursor == null ||
+        current.isLoadingMore) {
+      return;
+    }
+
+    emit(current.copyWith(isLoadingMore: true));
+
+    try {
+      final result = await _searchUseCase(SearchPropertiesParams(
+        filter: current.activeFilter,
+        cursor: current.nextCursor,
+      ));
+
+      result.fold(
+        (failure) => emit(current.copyWith(isLoadingMore: false)),
+        (page) {
+          final seen = current.properties.map((p) => p.id).toSet();
+          final appended = page.properties
+              .where((p) => !seen.contains(p.id))
+              .toList();
+          final merged = [...current.properties, ...appended];
+          emit(SearchResults(
+            properties: merged,
+            activeFilter: current.activeFilter,
+            totalCount: merged.length,
+            sortOrder: current.sortOrder,
+            hasMore: page.hasMore,
+            nextCursor: page.nextCursor,
+            isLoadingMore: false,
+          ));
+        },
+      );
+    } catch (_) {
+      emit(current.copyWith(isLoadingMore: false));
+    }
+  }
 
   Future<void> _performSearch(
     SearchFilter filter,
@@ -124,19 +167,23 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     emit(SearchLoading(filter: filter));
 
     try {
-      final result = await _searchUseCase(filter);
+      final result = await _searchUseCase(
+        SearchPropertiesParams(filter: filter),
+      );
 
       result.fold(
         (failure) => emit(SearchError(message: failure.message)),
-        (properties) {
-          if (properties.isEmpty) {
+        (page) {
+          if (page.properties.isEmpty) {
             emit(SearchEmpty(filter: filter));
           } else {
             emit(SearchResults(
-              properties: properties,
+              properties: page.properties,
               activeFilter: filter,
-              totalCount: properties.length,
+              totalCount: page.properties.length,
               sortOrder: filter.sortOrder,
+              hasMore: page.hasMore,
+              nextCursor: page.nextCursor,
             ));
           }
         },
@@ -146,12 +193,6 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     }
   }
 
-  // ── Debounce transformer ────────────────────────────────────────────────
-
-  /// Returns an [EventTransformer] that debounces events by [duration].
-  ///
-  /// Uses `Stream.asyncExpand` to cancel in-flight processing when a new
-  /// event arrives within the window — no extra package required.
   EventTransformer<T> _debounce<T>(Duration duration) {
     return (events, mapper) {
       return events
@@ -160,10 +201,6 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     };
   }
 }
-
-// ═════════════════════════════════════════════════════════════════════════════
-// Lightweight debounce stream transformer
-// ═════════════════════════════════════════════════════════════════════════════
 
 class _DebounceStreamTransformer<T> extends StreamTransformerBase<T, T> {
   final Duration duration;

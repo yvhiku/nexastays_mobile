@@ -2,6 +2,7 @@ import '../../../../app/env/env_bootstrap.dart';
 import '../../../../core/constants/api_endpoints.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/dio_client.dart';
+import '../models/explore_page_result.dart';
 import '../models/property_model.dart';
 import '../models/review_model.dart';
 import '../../../host_dashboard/data/models/host_reviews_payload.dart';
@@ -24,6 +25,40 @@ abstract class PropertyRemoteDataSource {
     String? sortOrder,
     int page = 1,
     int limit = 20,
+    String? cursor,
+  });
+
+  /// Canonical Explore list with opaque cursor pagination.
+  Future<ExplorePageResult> exploreProperties({
+    String? city,
+    DateTime? checkIn,
+    DateTime? checkOut,
+    int? guests,
+    bool? verifiedOnly,
+    bool? instantBookOnly,
+    String? listingType,
+    String? sort,
+    String? cursor,
+    int limit = 24,
+    double? north,
+    double? south,
+    double? east,
+    double? west,
+  });
+
+  /// Viewport map pins.
+  Future<ExploreMapResult> exploreMapPins({
+    required double north,
+    required double south,
+    required double east,
+    required double west,
+    String? city,
+    DateTime? checkIn,
+    DateTime? checkOut,
+    int? guests,
+    bool? verifiedOnly,
+    bool? instantBookOnly,
+    String? listingType,
   });
 
   Future<PropertyModel> getPropertyById(String id);
@@ -183,20 +218,33 @@ class PropertyRemoteDataSourceImpl implements PropertyRemoteDataSource {
     final neighborhood = _parseNeighborhood(json, address, city);
     final description = (json['description'] ?? '').toString();
     final listingType = (json['listing_type'] ?? 'APARTMENT').toString();
-    final ratePlan = _nestedMap(json['rate_plan']) ?? const {};
+    final ratePlan = _nestedMap(json['rate_plan']) ??
+        _nestedMap(json['price']) ??
+        const {};
     final rules = _nestedMap(json['rules']) ?? const {};
     final host = _nestedMap(json['host']) ?? const {};
     final media = _nestedMapList(json['media']);
 
-    final photoUrls = media
-        .where((m) => (m['kind'] ?? '').toString().toUpperCase() == 'PHOTO')
-        .map((m) => _mediaUrl(id, (m['asset_id'] ?? '').toString()))
-        .where((u) => u.isNotEmpty)
-        .toList();
+    final photoUrls = <String>[];
+    final cover = _nestedMap(json['cover']);
+    if (cover != null) {
+      final assetId = (cover['asset_id'] ?? '').toString();
+      final url = _mediaUrl(id, assetId);
+      if (url.isNotEmpty) photoUrls.add(url);
+    }
+    for (final m in media) {
+      if ((m['kind'] ?? '').toString().toUpperCase() != 'PHOTO') continue;
+      final url = _mediaUrl(id, (m['asset_id'] ?? '').toString());
+      if (url.isNotEmpty && !photoUrls.contains(url)) photoUrls.add(url);
+    }
+
     final walkthrough = media
         .where((m) => (m['kind'] ?? '').toString().toUpperCase() == 'WALKTHROUGH')
         .map((m) => _mediaUrl(id, (m['asset_id'] ?? '').toString()))
+        .where((u) => u.isNotEmpty)
         .toList();
+    final hasWalkthrough =
+        json['has_walkthrough'] == true || walkthrough.isNotEmpty;
 
     return PropertyModel(
       id: id,
@@ -223,7 +271,7 @@ class PropertyRemoteDataSourceImpl implements PropertyRemoteDataSource {
       ),
       rating: (json['avg_rating'] as num?)?.toDouble() ?? 0.0,
       reviewCount: (json['review_count'] as num?)?.toInt() ?? 0,
-      isVerified: walkthrough.isNotEmpty,
+      isVerified: hasWalkthrough,
       isInstantBook: json['instant_booking'] == true,
       vibeTags: const [],
       checkInContact: (host['full_name'] ?? '').toString(),
@@ -236,6 +284,121 @@ class PropertyRemoteDataSourceImpl implements PropertyRemoteDataSource {
       listingStatus: (json['status'] ?? 'LIVE').toString(),
       latitude: _parseCoordinate(json['geo_lat']),
       longitude: _parseCoordinate(json['geo_lng']),
+    );
+  }
+
+  List<PropertyModel> _mapExploreItems(dynamic items) {
+    if (items is! List) return const [];
+    final results = <PropertyModel>[];
+    for (final item in items) {
+      if (item is! Map) continue;
+      try {
+        results.add(_mapListing(_asStringMap(item)));
+      } catch (_) {
+        // Skip malformed listings instead of failing the whole search.
+      }
+    }
+    return results;
+  }
+
+  @override
+  Future<ExplorePageResult> exploreProperties({
+    String? city,
+    DateTime? checkIn,
+    DateTime? checkOut,
+    int? guests,
+    bool? verifiedOnly,
+    bool? instantBookOnly,
+    String? listingType,
+    String? sort,
+    String? cursor,
+    int limit = 24,
+    double? north,
+    double? south,
+    double? east,
+    double? west,
+  }) async {
+    final query = <String, dynamic>{
+      if (city != null && city.isNotEmpty) 'city': city,
+      if (checkIn != null)
+        'checkin_date': checkIn.toIso8601String().split('T').first,
+      if (checkOut != null)
+        'checkout_date': checkOut.toIso8601String().split('T').first,
+      if (guests != null && guests > 0) 'guests': guests,
+      if (verifiedOnly == true) 'verified_walkthrough_only': true,
+      if (instantBookOnly == true) 'instant_booking_only': true,
+      if (listingType != null && listingType.isNotEmpty)
+        'listing_type': listingType,
+      if (sort != null && sort.isNotEmpty) 'sort': sort,
+      if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
+      'limit': limit,
+      if (north != null) 'north': north,
+      if (south != null) 'south': south,
+      if (east != null) 'east': east,
+      if (west != null) 'west': west,
+    };
+    final response =
+        await client.get(ApiEndpoints.staysExplore, queryParameters: query);
+    _assertSuccess(response.statusCode, response.data);
+    final body = _unwrap(response.data);
+    if (body is! Map) {
+      return const ExplorePageResult(items: [], hasMore: false);
+    }
+    final map = _asStringMap(body);
+    final items = _mapExploreItems(map['items']);
+    final pagination = _nestedMap(map['pagination']) ?? const {};
+    final nextCursor = pagination['next_cursor']?.toString();
+    final hasMore = pagination['has_more'] == true;
+    return ExplorePageResult(
+      items: items,
+      hasMore: hasMore,
+      nextCursor: (nextCursor != null && nextCursor.isNotEmpty && nextCursor != 'null')
+          ? nextCursor
+          : null,
+    );
+  }
+
+  @override
+  Future<ExploreMapResult> exploreMapPins({
+    required double north,
+    required double south,
+    required double east,
+    required double west,
+    String? city,
+    DateTime? checkIn,
+    DateTime? checkOut,
+    int? guests,
+    bool? verifiedOnly,
+    bool? instantBookOnly,
+    String? listingType,
+  }) async {
+    final query = <String, dynamic>{
+      'north': north,
+      'south': south,
+      'east': east,
+      'west': west,
+      if (city != null && city.isNotEmpty) 'city': city,
+      if (checkIn != null)
+        'checkin_date': checkIn.toIso8601String().split('T').first,
+      if (checkOut != null)
+        'checkout_date': checkOut.toIso8601String().split('T').first,
+      if (guests != null && guests > 0) 'guests': guests,
+      if (verifiedOnly == true) 'verified_walkthrough_only': true,
+      if (instantBookOnly == true) 'instant_booking_only': true,
+      if (listingType != null && listingType.isNotEmpty)
+        'listing_type': listingType,
+    };
+    final response =
+        await client.get(ApiEndpoints.staysExploreMap, queryParameters: query);
+    _assertSuccess(response.statusCode, response.data);
+    final body = _unwrap(response.data);
+    if (body is! Map) {
+      return const ExploreMapResult(items: [], truncated: false);
+    }
+    final map = _asStringMap(body);
+    return ExploreMapResult(
+      items: _mapExploreItems(map['items']),
+      truncated: map['truncated'] == true,
     );
   }
 
@@ -256,32 +419,20 @@ class PropertyRemoteDataSourceImpl implements PropertyRemoteDataSource {
     String? sortOrder,
     int page = 1,
     int limit = 20,
+    String? cursor,
   }) async {
-    final query = <String, dynamic>{
-      if (city != null && city.isNotEmpty) 'city': city,
-      if (checkIn != null)
-        'checkin_date': checkIn.toIso8601String().split('T').first,
-      if (checkOut != null)
-        'checkout_date': checkOut.toIso8601String().split('T').first,
-      if (guests != null && guests > 0) 'guests': guests,
-      if (verifiedOnly == true) 'verified_walkthrough_only': true,
-      if (instantBookOnly == true) 'instant_booking_only': true,
-    };
-    final response =
-        await client.get(ApiEndpoints.staysListingsSearch, queryParameters: query);
-    _assertSuccess(response.statusCode, response.data);
-    final list = _unwrap(response.data);
-    if (list is! List) return const [];
-    final results = <PropertyModel>[];
-    for (final item in list) {
-      if (item is! Map) continue;
-      try {
-        results.add(_mapListing(_asStringMap(item)));
-      } catch (_) {
-        // Skip malformed listings instead of failing the whole search.
-      }
-    }
-    return results;
+    final pageResult = await exploreProperties(
+      city: city,
+      checkIn: checkIn,
+      checkOut: checkOut,
+      guests: guests,
+      verifiedOnly: verifiedOnly,
+      instantBookOnly: instantBookOnly,
+      sort: sortOrder == 'newest' || sortOrder == 'rating' ? sortOrder : null,
+      cursor: cursor,
+      limit: limit,
+    );
+    return pageResult.items;
   }
 
   @override

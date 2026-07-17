@@ -78,3 +78,8 @@ class SearchSortChanged extends SearchEvent {
   @override
   List<Object?> get props => [sortOrder];
 }
+
+/// User scrolled near the end — request next Explore cursor page.
+class SearchLoadMoreRequested extends SearchEvent {
+  const SearchLoadMoreRequested();
+}

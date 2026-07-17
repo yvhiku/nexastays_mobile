@@ -5,11 +5,37 @@ import '../../../search/domain/entities/search_filter.dart';
 import '../entities/property.dart';
 import '../entities/listing_reviews_result.dart';
 
+class ExploreSearchPage {
+  const ExploreSearchPage({
+    required this.properties,
+    required this.hasMore,
+    this.nextCursor,
+  });
+
+  final List<Property> properties;
+  final bool hasMore;
+  final String? nextCursor;
+}
+
 abstract class PropertyRepository {
   Future<Either<Failure, List<Property>>> getProperties({
     SearchFilter? filter,
     bool featured = false,
     bool trending = false,
+  });
+
+  Future<Either<Failure, ExploreSearchPage>> exploreSearch({
+    SearchFilter? filter,
+    String? cursor,
+    int limit = 24,
+  });
+
+  Future<Either<Failure, List<Property>>> exploreMap({
+    required double north,
+    required double south,
+    required double east,
+    required double west,
+    SearchFilter? filter,
   });
 
   Future<Either<Failure, Property>> getPropertyById(String id);

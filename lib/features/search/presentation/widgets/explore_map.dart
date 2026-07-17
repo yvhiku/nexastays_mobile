@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
+import 'dart:async';
 
 import '../../../../navigation/app_routes.dart';
 import '../../../../services/location_service.dart';
@@ -16,12 +17,21 @@ class ExploreMap extends StatefulWidget {
     super.key,
     required this.properties,
     this.preferListingsCenter = false,
+    this.onBoundsChanged,
   });
 
   final List<Property> properties;
 
   /// When true (e.g. city filter), frame the map around listing pins.
   final bool preferListingsCenter;
+
+  /// Debounced viewport bounds for `/stays/explore/map`.
+  final Future<void> Function({
+    required double north,
+    required double south,
+    required double east,
+    required double west,
+  })? onBoundsChanged;
 
   @override
   State<ExploreMap> createState() => _ExploreMapState();
@@ -116,6 +126,23 @@ class _ExploreMapState extends State<ExploreMap> {
     }
     _mapController.move(center, 13);
     setState(() => _zoom = 13);
+    _emitBounds();
+  }
+
+  void _emitBounds() {
+    final cb = widget.onBoundsChanged;
+    if (cb == null) return;
+    try {
+      final bounds = _mapController.camera.visibleBounds;
+      unawaited(cb(
+        north: bounds.north,
+        south: bounds.south,
+        east: bounds.east,
+        west: bounds.west,
+      ));
+    } catch (_) {
+      // Map not ready yet.
+    }
   }
 
   LatLng get _initialCenter {
@@ -252,10 +279,17 @@ class _ExploreMapState extends State<ExploreMap> {
           options: MapOptions(
             initialCenter: _initialCenter,
             initialZoom: _zoom,
-            onPositionChanged: (camera, _) {
+            onMapReady: () {
+              _emitBounds();
+            },
+            onPositionChanged: (camera, hasGesture) {
               final next = camera.zoom;
-              if ((next - _zoom).abs() < 0.05) return;
-              setState(() => _zoom = next);
+              if ((next - _zoom).abs() >= 0.05) {
+                setState(() => _zoom = next);
+              }
+              if (hasGesture) {
+                _emitBounds();
+              }
             },
           ),
           children: [

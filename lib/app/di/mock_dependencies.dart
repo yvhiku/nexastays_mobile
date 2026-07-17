@@ -113,6 +113,43 @@ class MockHomePropertyRepository implements home_repo.PropertyRepository {
     }
     return Right(results);
   }
+
+  @override
+  Future<Either<Failure, home_repo.ExploreSearchResult>> exploreProperties(
+    SearchFilter filter, {
+    String? cursor,
+  }) async {
+    final result = await searchProperties(filter);
+    return result.fold(
+      Left.new,
+      (list) => Right(home_repo.ExploreSearchResult(
+        properties: list,
+        hasMore: false,
+        nextCursor: null,
+      )),
+    );
+  }
+
+  @override
+  Future<Either<Failure, List<home_entity.Property>>> exploreMapPins({
+    required double north,
+    required double south,
+    required double east,
+    required double west,
+    SearchFilter? filter,
+  }) async {
+    final result = await searchProperties(filter ?? const SearchFilter());
+    return result.fold(Left.new, (list) {
+      return Right(list
+          .where((p) =>
+              p.hasMapCoordinates &&
+              p.latitude! >= south &&
+              p.latitude! <= north &&
+              p.longitude! >= west &&
+              p.longitude! <= east)
+          .toList());
+    });
+  }
 }
 
 class MockFullPropertyRepository implements prop_repo.PropertyRepository {
@@ -130,6 +167,44 @@ class MockFullPropertyRepository implements prop_repo.PropertyRepository {
       results = applySearchFilter(results, filter);
     }
     return Right(results);
+  }
+
+  @override
+  Future<Either<Failure, prop_repo.ExploreSearchPage>> exploreSearch({
+    SearchFilter? filter,
+    String? cursor,
+    int limit = 24,
+  }) async {
+    final result = await getProperties(filter: filter);
+    return result.fold(
+      Left.new,
+      (list) => Right(prop_repo.ExploreSearchPage(
+        properties: list.take(limit).toList(),
+        hasMore: false,
+        nextCursor: null,
+      )),
+    );
+  }
+
+  @override
+  Future<Either<Failure, List<prop_entity.Property>>> exploreMap({
+    required double north,
+    required double south,
+    required double east,
+    required double west,
+    SearchFilter? filter,
+  }) async {
+    final result = await getProperties(filter: filter);
+    return result.fold(Left.new, (list) {
+      return Right(list
+          .where((p) =>
+              p.hasMapCoordinates &&
+              p.latitude! >= south &&
+              p.latitude! <= north &&
+              p.longitude! >= west &&
+              p.longitude! <= east)
+          .toList());
+    });
   }
 
   @override
