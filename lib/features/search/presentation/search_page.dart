@@ -150,9 +150,11 @@ class _SearchPageViewState extends State<_SearchPageView> {
   Widget _buildMap(SearchState state) {
     final List<home.Property> properties =
         state is SearchResults ? state.properties : const [];
+    final filter = _extractFilter(state);
     return ExploreMap(
       key: const ValueKey('map'),
       properties: properties,
+      preferListingsCenter: filter.city != null && filter.city!.trim().isNotEmpty,
     );
   }
 
