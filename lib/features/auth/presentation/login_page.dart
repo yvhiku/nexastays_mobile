@@ -94,7 +94,7 @@ class _LoginPageState extends State<LoginPage> {
       value = '+$_selectedPhoneCode$value';
     }
 
-    return normalizeMoroccoPhone(value);
+    return normalizePhone(value);
   }
 
   void _startResendTimer(int seconds) {

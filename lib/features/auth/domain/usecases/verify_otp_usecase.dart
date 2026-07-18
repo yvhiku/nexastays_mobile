@@ -24,7 +24,7 @@ class VerifyOtpUseCase implements UseCase<User, VerifyOtpParams> {
     }
 
     return await repository.verifyOtp(
-      phone: normalizeMoroccoPhone(params.phone),
+      phone: normalizePhone(params.phone),
       otp: params.otp,
     );
   }

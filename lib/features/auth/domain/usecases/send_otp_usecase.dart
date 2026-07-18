@@ -15,13 +15,12 @@ class SendOtpUseCase implements UseCase<void, SendOtpParams> {
   @override
   Future<Either<Failure, void>> call(SendOtpParams params) async {
     if (params.phone.isEmpty) {
-      return Left(ValidationFailure('Please enter a valid Moroccan phone number'));
+      return Left(ValidationFailure('Please enter a valid phone number'));
     }
 
-    final phone = normalizeMoroccoPhone(params.phone);
-    final phoneRegExp = RegExp(r'^\+212[0-9]{9}$');
-    if (!phoneRegExp.hasMatch(phone)) {
-      return Left(ValidationFailure('Please enter a valid Moroccan phone number'));
+    final phone = normalizePhone(params.phone);
+    if (!isValidE164(phone)) {
+      return Left(ValidationFailure('Please enter a valid phone number'));
     }
 
     return await repository.sendOtp(phone);
@@ -44,9 +43,8 @@ class LoginWithPinUseCase implements UseCase<User, LoginWithPinParams> {
 
   @override
   Future<Either<Failure, User>> call(LoginWithPinParams params) async {
-    final phone = normalizeMoroccoPhone(params.phone);
-    final phoneRegExp = RegExp(r'^\+212[0-9]{9}$');
-    if (!phoneRegExp.hasMatch(phone)) {
+    final phone = normalizePhone(params.phone);
+    if (!isValidE164(phone)) {
       return Left(ValidationFailure('Invalid phone number'));
     }
 

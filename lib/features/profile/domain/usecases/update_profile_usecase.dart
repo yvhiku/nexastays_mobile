@@ -17,7 +17,7 @@ class UpdateProfileUseCase extends UseCase<User, UpdateProfileParams> {
 
   final ProfileRepository _repository;
 
-  static final _phoneRegex = RegExp(r'^\+212[0-9]{9}$');
+  static final _phoneRegex = RegExp(r'^\+[1-9]\d{7,14}$');
 
   @override
   Future<Either<Failure, User>> call(UpdateProfileParams params) async {
@@ -53,11 +53,11 @@ class UpdateProfileUseCase extends UseCase<User, UpdateProfileParams> {
     }
 
     final phone = params.phone != null
-        ? normalizeMoroccoPhone(params.phone!)
+        ? normalizePhone(params.phone!)
         : null;
     if (phone != null && !_phoneRegex.hasMatch(phone)) {
       return const Left(
-        ValidationFailure('Invalid Moroccan phone number'),
+        ValidationFailure('Invalid phone number'),
       );
     }
 
