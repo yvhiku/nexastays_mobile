@@ -9,6 +9,9 @@ import '../../core/storage/secure_storage.dart';
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../../features/notifications/data/datasources/push_token_datasource.dart';
+import '../../services/notification_service.dart';
+import '../../services/push_registration_service.dart';
 import '../../features/auth/domain/usecases/create_pin_usecase.dart';
 import '../../features/auth/domain/usecases/logout_usecase.dart';
 import '../../features/auth/domain/usecases/send_otp_usecase.dart';
@@ -27,6 +30,7 @@ void configureAuthDependencies() {
       () => DioClient(
         sessionManager: getIt<SessionManager>(),
         baseUrl: currentEnv.identityBaseUrl,
+        attachDeviceId: true,
       ),
       instanceName: ApiClientNames.identity,
     );
@@ -55,6 +59,26 @@ void configureAuthDependencies() {
       ),
     );
   }
+  if (!getIt.isRegistered<NotificationService>()) {
+    getIt.registerLazySingleton<NotificationService>(() => NotificationService());
+  }
+  if (!getIt.isRegistered<PushTokenDataSource>()) {
+    getIt.registerLazySingleton<PushTokenDataSource>(
+      () => PushTokenDataSource(
+        getIt<DioClient>(instanceName: ApiClientNames.identity),
+      ),
+    );
+  }
+  if (!getIt.isRegistered<PushRegistrationService>()) {
+    getIt.registerLazySingleton<PushRegistrationService>(
+      () => PushRegistrationService(
+        notificationService: getIt<NotificationService>(),
+        pushTokenDataSource: getIt<PushTokenDataSource>(),
+        sessionManager: getIt<SessionManager>(),
+      ),
+    );
+  }
+
   if (!getIt.isRegistered<AuthRepository>()) {
     getIt.registerLazySingleton<AuthRepository>(
       () => AuthRepositoryImpl(
@@ -62,6 +86,7 @@ void configureAuthDependencies() {
         secureStorage: getIt<SecureStorageService>(),
         localStorage: getIt<LocalStorage>(),
         sessionManager: getIt<SessionManager>(),
+        pushRegistration: getIt<PushRegistrationService>(),
       ),
     );
   }

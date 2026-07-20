@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../app/env/env_bootstrap.dart';
 import '../session/session_manager.dart';
 import 'interceptors/auth_interceptor.dart';
+import 'interceptors/device_id_interceptor.dart';
 import 'interceptors/error_interceptor.dart';
 
 /// HTTP client for Identity or Stays backends (same JWT, different base URL).
@@ -10,6 +11,7 @@ class DioClient {
   DioClient({
     required SessionManager sessionManager,
     required String baseUrl,
+    bool attachDeviceId = false,
   }) : _baseUrl = baseUrl {
     _dio = Dio(
       BaseOptions(
@@ -25,6 +27,7 @@ class DioClient {
     )
       ..interceptors.addAll([
         AuthInterceptor(sessionManager: sessionManager),
+        if (attachDeviceId) DeviceIdInterceptor(),
         ErrorInterceptor(),
         if (currentEnv.enableLogging)
           LogInterceptor(

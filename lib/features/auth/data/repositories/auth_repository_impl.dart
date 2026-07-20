@@ -12,6 +12,7 @@ import '../../../../core/storage/local_storage.dart';
 import '../../../../core/storage/secure_storage.dart';
 import '../../../../core/utils/jwt_sub.dart';
 import '../../../../core/utils/phone_normalizer.dart';
+import '../../../../services/push_registration_service.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
@@ -22,12 +23,14 @@ class AuthRepositoryImpl implements AuthRepository {
   final SecureStorageService secureStorage;
   final LocalStorage localStorage;
   final SessionManager sessionManager;
+  final PushRegistrationService? pushRegistration;
 
   AuthRepositoryImpl({
     required this.remoteDataSource,
     required this.secureStorage,
     required this.localStorage,
     required this.sessionManager,
+    this.pushRegistration,
   });
 
   static const String _tokenKey = 'auth_token';
@@ -82,6 +85,7 @@ class AuthRepositoryImpl implements AuthRepository {
     final me = await remoteDataSource.fetchCurrentUserMe();
     final userModel = UserModel.fromUsersMe(me, phoneFallback: phoneFallback);
     await localStorage.setString(_userKey, jsonEncode(userModel.toJson()));
+    unawaited(pushRegistration?.registerIfAuthenticated());
     return userModel;
   }
 
@@ -383,6 +387,8 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, void>> logout() async {
     // Capture before clearing (used for best-effort revoke on server).
     final userId = sessionManager.userId;
+
+    unawaited(pushRegistration?.deactivateOnLogout());
 
     // Always clear local/session first so logout completes quickly and the UI
     // can transition even if the API is slow or unreachable (hung POST was

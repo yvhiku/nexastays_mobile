@@ -34,6 +34,7 @@ class ApiEndpoints {
   static const String usersMe = '/users/me';
   static const String usersProfile = '/users/profile';
   static const String usersProfilePhoto = '/users/me/profile-photo';
+  static const String pushToken = '/users/me/push-token';
 
   // Stays — public config & listings
   static const String staysConfigFees = '/stays/config/fees';
