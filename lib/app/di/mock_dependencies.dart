@@ -77,6 +77,20 @@ import '../../features/dispute/data/models/dispute_model.dart';
 import '../../features/dispute/data/repositories/dispute_repository_impl.dart';
 import '../../features/dispute/presentation/bloc/dispute_cubit.dart';
 
+// ── Messaging feature ───────────────────────────────────────────────
+import '../../features/messaging/data/datasources/messaging_remote_datasource.dart';
+import '../../features/messaging/data/draft/draft_store.dart';
+import '../../features/messaging/data/models/conversation_model.dart';
+import '../../features/messaging/data/models/conversation_permissions_model.dart';
+import '../../features/messaging/data/models/message_model.dart';
+import '../../features/messaging/data/models/reservation_snapshot_model.dart';
+import '../../features/messaging/data/realtime/messaging_realtime_adapter.dart';
+import '../../features/messaging/data/repositories/messaging_repository_impl.dart';
+import '../../features/messaging/domain/entities/conversation.dart';
+import '../../features/messaging/domain/repositories/messaging_repository.dart';
+import '../../features/messaging/presentation/conversation/conversation_cubit.dart';
+import '../../features/messaging/presentation/inbox/inbox_cubit.dart';
+
 final GetIt getIt = GetIt.instance;
 
 // ══════════════════════════════════════════════════════════════════════
@@ -735,6 +749,157 @@ class MockDisputeRemoteDataSource implements DisputeRemoteDataSource {
   }
 }
 
+class MockMessagingRemoteDataSource implements MessagingRemoteDataSource {
+  static const _conversationId = 'mock-conversation-1';
+
+  static final _permissions = ConversationPermissionsModel(
+    canSend: true,
+    canUpload: false,
+    canCall: false,
+    canReport: true,
+    canBlock: true,
+    canReview: false,
+    isReadOnly: false,
+    canArchive: true,
+    canDelete: true,
+  );
+
+  static final _snapshot = ReservationSnapshotModel(
+    listingTitle: 'Riad Atlas View',
+    primaryPhotoUrl: null,
+    addressDisplay: 'Marrakech Medina',
+    checkinDate: DateTime.now().add(const Duration(days: 7)).toIso8601String(),
+    checkoutDate: DateTime.now().add(const Duration(days: 10)).toIso8601String(),
+    guestCount: 2,
+    hostDisplayName: 'Youssef',
+    guestDisplayName: 'Demo Guest',
+    bookingReference: 'NX-48291',
+  );
+
+  ConversationModel _sampleConversation({List<MessageModel>? messages}) {
+    return ConversationModel(
+      id: _conversationId,
+      type: 'BOOKING',
+      messagingState: 'ACTIVE',
+      visibility: 'ACTIVE',
+      conversationVersion: 3,
+      lastMessageSequence: 2,
+      unreadCount: 1,
+      counterpart: const ConversationCounterpart(
+        name: 'Youssef',
+        avatarUrl: null,
+        isSuperhost: true,
+      ),
+      listing: const ConversationListing(title: 'Riad Atlas View', city: 'Marrakech'),
+      lastMessage: ConversationLastMessage(
+        preview: 'Looking forward to hosting you!',
+        at: DateTime.now().subtract(const Duration(hours: 2)),
+      ),
+      reservationSnapshot: _snapshot,
+      permissions: _permissions,
+      bookingId: 'booking-mock-1',
+      bookingStatus: 'CONFIRMED',
+      messages: messages ?? _sampleMessages(),
+      hasMore: false,
+    );
+  }
+
+  List<MessageModel> _sampleMessages() {
+    final now = DateTime.now();
+    return [
+      MessageModel(
+        id: 'msg-1',
+        conversationId: _conversationId,
+        conversationSequence: 1,
+        type: 'BOOKING_CARD',
+        body: null,
+        metadata: {
+          'title': 'Booking confirmed',
+          'kind': 'booking_confirmed',
+          'schemaVersion': 1,
+          'cardVersion': 1,
+        },
+        status: 'PERSISTED',
+        isSystem: true,
+        createdAt: now.subtract(const Duration(days: 1)),
+        isOwn: false,
+      ),
+      MessageModel(
+        id: 'msg-2',
+        conversationId: _conversationId,
+        conversationSequence: 2,
+        type: 'TEXT',
+        body: 'Looking forward to hosting you!',
+        metadata: const {},
+        status: 'PERSISTED',
+        sentAt: now.subtract(const Duration(hours: 2)),
+        isSystem: false,
+        createdAt: now.subtract(const Duration(hours: 2)),
+        isOwn: false,
+      ),
+    ];
+  }
+
+  @override
+  Future<List<ConversationModel>> getConversations({
+    String filter = 'all',
+    String? query,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    return [_sampleConversation(messages: const [])];
+  }
+
+  @override
+  Future<int> getUnreadCount() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    return 1;
+  }
+
+  @override
+  Future<ConversationModel> getConversation(
+    String conversationId, {
+    int? beforeSequence,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    return _sampleConversation();
+  }
+
+  @override
+  Future<({List<MessageModel> messages, bool hasMore})> getMessages(
+    String conversationId, {
+    int limit = 30,
+    int? beforeSequence,
+  }) async {
+    return (messages: _sampleMessages(), hasMore: false);
+  }
+
+  @override
+  Future<MessageModel> sendMessage(
+    String conversationId,
+    String body, {
+    String? clientMessageId,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 150));
+    return MessageModel(
+      id: 'msg-${DateTime.now().millisecondsSinceEpoch}',
+      conversationId: conversationId,
+      conversationSequence: 99,
+      type: 'TEXT',
+      body: body,
+      metadata: const {},
+      status: 'PERSISTED',
+      sentAt: DateTime.now(),
+      isSystem: false,
+      clientMessageId: clientMessageId,
+      createdAt: DateTime.now(),
+      isOwn: true,
+    );
+  }
+
+  @override
+  Future<void> markRead(String conversationId) async {}
+}
+
 // ══════════════════════════════════════════════════════════════════════
 // Configuration
 // ══════════════════════════════════════════════════════════════════════
@@ -820,6 +985,26 @@ void configureMockDependencies({bool seedMockAuth = true}) {
   );
   getIt.registerLazySingleton<GetDisputeStatusUseCase>(
     () => GetDisputeStatusUseCase(getIt<DisputeRepository>()),
+  );
+
+  // ── Messaging data source, repo, and cubits ─────────────────────
+  getIt.registerSingleton<MessagingRemoteDataSource>(
+    MockMessagingRemoteDataSource(),
+  );
+  getIt.registerSingleton<MessagingRepositoryImpl>(
+    MessagingRepositoryImpl(
+      remoteDataSource: getIt<MessagingRemoteDataSource>(),
+      localStorage: getIt<LocalStorage>(),
+    ),
+  );
+  getIt.registerSingleton<MessagingRepository>(
+    getIt<MessagingRepositoryImpl>(),
+  );
+  getIt.registerLazySingleton<MessagingDraftStore>(
+    () => MessagingDraftStore(getIt<LocalStorage>()),
+  );
+  getIt.registerLazySingleton<MessagingRealtimeAdapter>(
+    getMessagingRealtimeAdapter,
   );
 
   // ── Existing feature use cases ────────────────────────────────────
@@ -922,4 +1107,15 @@ void configureMockDependencies({bool seedMockAuth = true}) {
     disputeRepository: getIt<DisputeRepositoryImpl>(),
     sessionManager: getIt<SessionManager>(),
   ));
+
+  getIt.registerLazySingleton<InboxCubit>(() => InboxCubit(
+        repository: getIt<MessagingRepository>(),
+        realtimeAdapter: getIt<MessagingRealtimeAdapter>(),
+      ));
+
+  getIt.registerFactory<ConversationCubit>(() => ConversationCubit(
+        repository: getIt<MessagingRepository>(),
+        draftStore: getIt<MessagingDraftStore>(),
+        realtimeAdapter: getIt<MessagingRealtimeAdapter>(),
+      ));
 }

@@ -54,6 +54,10 @@ abstract class AppRoutes {
   static const openDispute = '/dispute/open';
   static const disputeStatus = '/dispute/status';
 
+  // ─── MESSAGING ─────────────────────────────────────────────────
+  static const inbox = '/inbox';
+  static const conversation = '/inbox/:id';
+
   // ─── HOST ──────────────────────────────────────────────────────
   static const hostRegister = '/host-register';
   static const hostListProperty = '/host-list-property';
@@ -69,6 +73,7 @@ abstract class AppRoutes {
   static String propertyDetailOf(String id) => '/property/$id';
   static String bookingDetailOf(String id) => '/booking/$id';
   static String bookingCheckoutOf(String id) => '/booking/$id/checkout';
+  static String conversationOf(String id) => '/inbox/$id';
   static String hostPropertyManageOf(String id) => '/host-property-manage/$id';
   static String hostListingEditOf(String id, {String? section}) {
     final base = '/host-listing-edit/$id';

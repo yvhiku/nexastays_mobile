@@ -38,6 +38,11 @@ import '../../features/wishlist/data/repositories/wishlist_repository_impl.dart'
 import '../../features/wishlist/domain/repositories/wishlist_repository.dart';
 import '../../features/wishlist/domain/usecases/add_to_wishlist_usecase.dart';
 import '../../features/wishlist/domain/usecases/remove_from_wishlist_usecase.dart';
+import '../../features/messaging/data/datasources/messaging_remote_datasource.dart';
+import '../../features/messaging/data/draft/draft_store.dart';
+import '../../features/messaging/data/realtime/messaging_realtime_adapter.dart';
+import '../../features/messaging/data/repositories/messaging_repository_impl.dart';
+import '../../features/messaging/domain/repositories/messaging_repository.dart';
 import 'auth_injection.dart';
 import 'mock_dependencies.dart';
 import 'verification_injection.dart';
@@ -248,4 +253,37 @@ void _wireRealStaysApis() {
       localStorage: getIt<LocalStorage>(),
     ),
   );
+
+  // Messaging: real backend (`/messaging/*`).
+  if (getIt.isRegistered<MessagingRemoteDataSource>()) {
+    getIt.unregister<MessagingRemoteDataSource>();
+  }
+  getIt.registerLazySingleton<MessagingRemoteDataSource>(
+    () => MessagingRemoteDataSourceImpl(staysClient),
+  );
+  if (getIt.isRegistered<MessagingRepositoryImpl>()) {
+    getIt.unregister<MessagingRepositoryImpl>();
+  }
+  getIt.registerLazySingleton<MessagingRepositoryImpl>(
+    () => MessagingRepositoryImpl(
+      remoteDataSource: getIt<MessagingRemoteDataSource>(),
+      localStorage: getIt<LocalStorage>(),
+    ),
+  );
+  if (getIt.isRegistered<MessagingRepository>()) {
+    getIt.unregister<MessagingRepository>();
+  }
+  getIt.registerLazySingleton<MessagingRepository>(
+    () => getIt<MessagingRepositoryImpl>(),
+  );
+  if (!getIt.isRegistered<MessagingDraftStore>()) {
+    getIt.registerLazySingleton<MessagingDraftStore>(
+      () => MessagingDraftStore(getIt<LocalStorage>()),
+    );
+  }
+  if (!getIt.isRegistered<MessagingRealtimeAdapter>()) {
+    getIt.registerLazySingleton<MessagingRealtimeAdapter>(
+      getMessagingRealtimeAdapter,
+    );
+  }
 }

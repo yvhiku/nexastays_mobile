@@ -88,6 +88,25 @@ class ApiEndpoints {
 
   static const String uploadMedia = '/media/upload';
 
+  // Messaging
+  static const String messagingConversations = '/messaging/conversations';
+  static const String messagingUnreadCount =
+      '/messaging/conversations/unread-count';
+  static const String messagingConversationById =
+      '/messaging/conversations/{id}';
+  static const String messagingMessages =
+      '/messaging/conversations/{id}/messages';
+  static const String messagingRead = '/messaging/conversations/{id}/read';
+
+  static String conversationById(String id) =>
+      messagingConversationById.replaceFirst('{id}', id);
+
+  static String conversationMessages(String id) =>
+      messagingMessages.replaceFirst('{id}', id);
+
+  static String conversationRead(String id) =>
+      messagingRead.replaceFirst('{id}', id);
+
   // Disputes
   static const String disputes = '/disputes';
 

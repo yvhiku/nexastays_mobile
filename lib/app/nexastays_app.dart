@@ -11,6 +11,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/presentation/bloc/auth_bloc.dart';
+import '../services/notification_service.dart';
+import 'di/injection.dart';
 import 'router.dart';
 import 'theme.dart';
 
@@ -34,6 +36,7 @@ class _NexaStaysAppState extends State<NexaStaysApp> {
     _router ??= AppRouter.createRouter(
       AppRouter.authRefreshListenable(context.read<AuthBloc>()),
     );
+    getIt<NotificationService>().bindRouter(_router!);
   }
 
   @override

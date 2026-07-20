@@ -2,7 +2,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../design_system/components/nexa_stays_wordmark.dart';
+import '../../../design_system/tokens/colors.dart';
 import '../../../navigation/app_routes.dart';
+import '../../messaging/presentation/inbox/inbox_cubit.dart';
+import '../../messaging/presentation/inbox/inbox_state.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../profile/presentation/widgets/profile_photo_avatar.dart';
@@ -31,6 +34,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     context.read<HomeCubit>().loadHome();
+    context.read<InboxCubit>().loadUnreadCount();
   }
 
   @override
@@ -83,6 +87,32 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
       actions: [
+        BlocBuilder<InboxCubit, InboxState>(
+          builder: (context, inboxState) {
+            final unread = switch (inboxState) {
+              InboxLoaded(:final unreadCount) => unreadCount,
+              InboxEmpty(:final unreadCount) => unreadCount,
+              InboxUnreadLoaded(:final unreadCount) => unreadCount,
+              _ => 0,
+            };
+            final badge = unread <= 0
+                ? null
+                : (unread > 99 ? '99+' : '$unread');
+            return IconButton(
+              tooltip: 'Messages',
+              onPressed: () => context.push(AppRoutes.inbox),
+              icon: Badge(
+                isLabelVisible: badge != null,
+                label: badge != null ? Text(badge) : null,
+                backgroundColor: DSColors.primary,
+                child: const Icon(
+                  Icons.mail_outline_rounded,
+                  color: Color(0xFF1A1A2E),
+                ),
+              ),
+            );
+          },
+        ),
         Padding(
           padding: const EdgeInsets.only(right: 16),
           child: BlocBuilder<HomeCubit, HomeState>(

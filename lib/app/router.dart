@@ -75,6 +75,10 @@ import '../features/wishlist/presentation/bloc/wishlist_cubit.dart';
 import '../features/dispute/presentation/open_dispute_page.dart';
 import '../features/dispute/presentation/dispute_status_page.dart';
 import '../features/dispute/presentation/bloc/dispute_cubit.dart';
+import '../features/messaging/presentation/inbox/inbox_page.dart';
+import '../features/messaging/presentation/inbox/inbox_cubit.dart';
+import '../features/messaging/presentation/conversation/conversation_page.dart';
+import '../features/messaging/presentation/conversation/conversation_cubit.dart';
 
 import '../features/auth/presentation/bloc/auth_state.dart';
 import '../features/auth/presentation/bloc/auth_bloc.dart';
@@ -386,8 +390,15 @@ class AppRouter {
                 pageBuilder: (context, state) => _buildPageWithTransition(
                   context: context,
                   state: state,
-                  child: BlocProvider<HomeCubit>(
-                    create: (_) => getIt<HomeCubit>(),
+                  child: MultiBlocProvider(
+                    providers: [
+                      BlocProvider<HomeCubit>(
+                        create: (_) => getIt<HomeCubit>(),
+                      ),
+                      BlocProvider<InboxCubit>.value(
+                        value: getIt<InboxCubit>()..loadUnreadCount(),
+                      ),
+                    ],
                     child: const HomePage(),
                   ),
                   transitionType: RouteTransitionType.fade,
@@ -628,6 +639,42 @@ class AppRouter {
               ),
             ),
             transitionType: RouteTransitionType.fade,
+          );
+        },
+      ),
+
+      // ─── MESSAGING ──────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.inbox,
+        name: 'inbox',
+        pageBuilder: (context, state) => _buildPageWithTransition(
+          context: context,
+          state: state,
+          child: BlocProvider<InboxCubit>.value(
+            value: getIt<InboxCubit>()..loadConversations(),
+            child: const InboxPage(),
+          ),
+          transitionType: RouteTransitionType.fade,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.conversation,
+        name: 'conversation',
+        pageBuilder: (context, state) {
+          final id = state.pathParameters['id']!;
+          final args = state.extra as Map<String, dynamic>? ?? {};
+          return _buildPageWithTransition(
+            context: context,
+            state: state,
+            child: BlocProvider<ConversationCubit>(
+              create: (_) => getIt<ConversationCubit>(),
+              child: ConversationPage(
+                conversationId: id,
+                conversationVersion: args['conversationVersion'] as int?,
+                lastMessageId: args['lastMessageId'] as String?,
+              ),
+            ),
+            transitionType: RouteTransitionType.slideRightToLeft,
           );
         },
       ),
