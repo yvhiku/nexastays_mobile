@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../data/draft/draft_store.dart';
+import '../../data/push_sync.dart';
 import '../../data/realtime/messaging_realtime_adapter.dart';
 import '../../domain/repositories/messaging_repository.dart';
 import 'conversation_state.dart';
@@ -59,6 +60,14 @@ class ConversationCubit extends Cubit<ConversationState> {
   Future<void> refresh() async {
     final current = state;
     if (current is! ConversationLoaded || _conversationId == null) return;
+
+    if (_expectedVersion != null &&
+        !MessagingPushSync.shouldFetch(
+          localVersion: current.conversation.conversationVersion,
+          pushVersion: _expectedVersion,
+        )) {
+      return;
+    }
 
     final result = await _repository.getConversation(_conversationId!);
     result.fold(
