@@ -12,6 +12,14 @@ import '../../domain/entities/conversation.dart';
 import 'inbox_cubit.dart';
 import 'inbox_state.dart';
 
+const _filters = [
+  ('active', 'Active stays'),
+  ('unread', 'Unread'),
+  ('support', 'Support'),
+  ('archived', 'Archived'),
+  ('all', 'All'),
+];
+
 class InboxPage extends StatefulWidget {
   const InboxPage({super.key});
 
@@ -32,6 +40,12 @@ class _InboxPageState extends State<InboxPage> {
   void dispose() {
     context.read<InboxCubit>().stopPolling();
     super.dispose();
+  }
+
+  String _currentFilter(InboxState state) {
+    if (state is InboxLoaded) return state.filter;
+    if (state is InboxEmpty) return state.filter;
+    return 'active';
   }
 
   @override
@@ -74,29 +88,69 @@ class _InboxPageState extends State<InboxPage> {
               onRetry: () => context.read<InboxCubit>().loadConversations(),
             );
           }
-          if (state is InboxEmpty) {
-            return const EmptyState(
-              title: 'No messages yet',
-              subtitle: 'When you book a stay, your host can message you here.',
-            );
-          }
-          if (state is InboxLoaded) {
-            return RefreshIndicator(
-              onRefresh: () => context.read<InboxCubit>().refresh(),
-              color: DSColors.primary,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                itemCount: state.conversations.length,
-                separatorBuilder: (_, __) =>
-                    const Divider(height: 1, indent: 76, color: DSColors.line),
-                itemBuilder: (context, index) {
-                  final conversation = state.conversations[index];
-                  return _ConversationTile(conversation: conversation);
+
+          final currentFilter = _currentFilter(state);
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                height: 44,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: _filters.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final (value, label) = _filters[index];
+                    final selected = currentFilter == value;
+                    return FilterChip(
+                      label: Text(label),
+                      selected: selected,
+                      onSelected: (_) =>
+                          context.read<InboxCubit>().setFilter(value),
+                      selectedColor: DSColors.primary,
+                      labelStyle: GoogleFonts.dmSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: selected ? Colors.white : DSColors.ink3,
+                      ),
+                      backgroundColor: DSColors.background2,
+                      side: BorderSide.none,
+                      showCheckmark: false,
+                    );
+                  },
+                ),
+              ),
+              Expanded(
+                child: switch (state) {
+                  InboxEmpty() => const EmptyState(
+                      title: 'No messages yet',
+                      subtitle:
+                          'When you book a stay, your host can message you here.',
+                    ),
+                  InboxLoaded(:final conversations) => RefreshIndicator(
+                      onRefresh: () => context.read<InboxCubit>().refresh(),
+                      color: DSColors.primary,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: conversations.length,
+                        separatorBuilder: (_, __) => const Divider(
+                          height: 1,
+                          indent: 76,
+                          color: DSColors.line,
+                        ),
+                        itemBuilder: (context, index) {
+                          final conversation = conversations[index];
+                          return _ConversationTile(conversation: conversation);
+                        },
+                      ),
+                    ),
+                  _ => const SizedBox.shrink(),
                 },
               ),
-            );
-          }
-          return const SizedBox.shrink();
+            ],
+          );
         },
       ),
     );

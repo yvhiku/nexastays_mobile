@@ -1,19 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../design_system/tokens/colors.dart';
+import '../../../booking/presentation/list/widgets/booking_review_sheet.dart';
 import '../../domain/entities/reservation_snapshot.dart';
 
 class BookingSummaryBar extends StatelessWidget {
   const BookingSummaryBar({
     required this.snapshot,
+    this.bookingId,
     this.counterpartName,
+    this.messagingState,
+    this.bookingStatus,
+    this.postStayEndsAt,
+    this.canReview = false,
     super.key,
   });
 
   final ReservationSnapshot snapshot;
+  final String? bookingId;
   final String? counterpartName;
+  final String? messagingState;
+  final String? bookingStatus;
+  final DateTime? postStayEndsAt;
+  final bool canReview;
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +35,10 @@ class BookingSummaryBar extends StatelessWidget {
     final datesLabel = checkIn != null && checkOut != null
         ? '${dateFormat.format(checkIn)} – ${dateFormat.format(checkOut)}'
         : '${snapshot.checkinDate} – ${snapshot.checkoutDate}';
+    final isPostStay = bookingStatus == 'COMPLETED' &&
+        messagingState == 'ACTIVE' &&
+        postStayEndsAt != null;
+    final isArchived = messagingState == 'ARCHIVED';
 
     return Material(
       color: DSColors.primarySoft,
@@ -48,7 +64,11 @@ class BookingSummaryBar extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    snapshot.listingTitle,
+                    isPostStay
+                        ? 'Stay completed'
+                        : isArchived
+                            ? 'Archived'
+                            : snapshot.listingTitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.dmSans(
@@ -59,13 +79,15 @@ class BookingSummaryBar extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    datesLabel,
+                    isPostStay && postStayEndsAt != null
+                        ? 'Conversation available until ${DateFormat('MMMM d').format(postStayEndsAt!)}'
+                        : datesLabel,
                     style: GoogleFonts.dmSans(
                       fontSize: 12,
                       color: DSColors.ink3,
                     ),
                   ),
-                  if (counterpartName != null) ...[
+                  if (counterpartName != null && !isPostStay) ...[
                     const SizedBox(height: 2),
                     Text(
                       counterpartName!,
@@ -78,7 +100,20 @@ class BookingSummaryBar extends StatelessWidget {
                 ],
               ),
             ),
-            if (snapshot.bookingReference != null)
+            if (isPostStay && canReview && bookingId != null)
+              TextButton(
+                onPressed: () => showBookingReviewSheet(
+                  context: context,
+                  bookingId: bookingId!,
+                ),
+                child: const Text('Leave a review'),
+              )
+            else if (bookingId != null)
+              TextButton(
+                onPressed: () => context.push('/booking/$bookingId'),
+                child: const Text('View'),
+              )
+            else if (snapshot.bookingReference != null)
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

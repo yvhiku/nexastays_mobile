@@ -19,11 +19,89 @@ class ConversationModel extends Conversation {
     required super.permissions,
     super.bookingId,
     super.bookingStatus,
+    super.postStayEndsAt,
     super.messages,
     super.hasMore,
   });
 
   factory ConversationModel.fromJson(Map<String, dynamic> json) {
+    if (json.containsKey('conversation')) {
+      return ConversationModel._fromV3(json);
+    }
+    return ConversationModel._fromLegacy(json);
+  }
+
+  factory ConversationModel._fromV3(Map<String, dynamic> json) {
+    final conv = json['conversation'] as Map<String, dynamic>? ?? const {};
+    final pres = json['presentation'] as Map<String, dynamic>? ?? const {};
+    final sync = json['sync'] as Map<String, dynamic>? ?? const {};
+    final last = json['lastMessage'] as Map<String, dynamic>? ?? const {};
+    final perms = json['permissions'] as Map<String, dynamic>? ?? const {};
+    final counterpart =
+        pres['counterpart'] as Map<String, dynamic>? ?? const {};
+    final listing = pres['listing'] as Map<String, dynamic>? ?? const {};
+    final reservation =
+        pres['reservation'] as Map<String, dynamic>? ?? const {};
+    final timeline = json['timeline'] as List<dynamic>? ??
+        json['messages'] as List<dynamic>? ??
+        const [];
+
+    return ConversationModel(
+      id: conv['id'] as String? ?? '',
+      type: conv['type'] as String? ?? 'BOOKING',
+      messagingState: conv['messagingState'] as String? ?? 'ACTIVE',
+      visibility: conv['visibility'] as String? ?? 'ACTIVE',
+      conversationVersion:
+          (sync['conversationVersion'] as num?)?.toInt() ??
+              (conv['conversationVersion'] as num?)?.toInt() ??
+              1,
+      lastMessageSequence:
+          int.tryParse('${sync['lastMessageId'] ?? ''}') ??
+              (sync['conversationVersion'] as num?)?.toInt() ??
+              0,
+      unreadCount: (sync['unreadCount'] as num?)?.toInt() ?? 0,
+      counterpart: ConversationCounterpart(
+        name: counterpart['displayName'] as String? ??
+            pres['title'] as String? ??
+            'Guest',
+        avatarUrl: (pres['avatar'] as Map<String, dynamic>?)?['url']
+            as String?,
+        isSuperhost: counterpart['verified'] as bool? ?? false,
+      ),
+      listing: ConversationListing(
+        title: listing['title'] as String? ??
+            reservation['listingTitle'] as String? ??
+            'Stay',
+        city: listing['city'] as String?,
+      ),
+      lastMessage: ConversationLastMessage(
+        preview: last['preview'] as String?,
+        at: MessageModel.parseDate(last['at']),
+      ),
+      reservationSnapshot: ReservationSnapshotModel.fromJson({
+        'listingTitle': reservation['listingTitle'] ?? listing['title'],
+        'listingId': reservation['listingId'],
+        'checkinDate': reservation['checkinDate'],
+        'checkoutDate': reservation['checkoutDate'],
+        'guestCount': reservation['guestCount'],
+        'bookingReference': reservation['bookingReference'],
+        'bookingId': reservation['bookingId'] ?? conv['bookingId'],
+        'city': reservation['city'] ?? listing['city'],
+        'coverMediaId': reservation['coverMedia']?['url'],
+        'primaryPhotoUrl': reservation['coverMedia']?['url'],
+      }),
+      permissions: ConversationPermissionsModel.fromJson(perms),
+      bookingId: conv['bookingId'] as String? ?? reservation['bookingId'] as String?,
+      bookingStatus: json['bookingStatus'] as String?,
+      postStayEndsAt: MessageModel.parseDate(conv['postStayEndsAt']),
+      messages: timeline
+          .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      hasMore: json['hasMore'] as bool? ?? false,
+    );
+  }
+
+  factory ConversationModel._fromLegacy(Map<String, dynamic> json) {
     final counterpartJson =
         json['counterpart'] as Map<String, dynamic>? ?? const {};
     final listingJson = json['listing'] as Map<String, dynamic>? ?? const {};
@@ -63,6 +141,7 @@ class ConversationModel extends Conversation {
       permissions: ConversationPermissionsModel.fromJson(permissionsJson),
       bookingId: json['bookingId'] as String?,
       bookingStatus: json['bookingStatus'] as String?,
+      postStayEndsAt: MessageModel.parseDate(json['postStayEndsAt']),
       messages: messagesJson
           .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -98,6 +177,7 @@ class ConversationModel extends Conversation {
             (permissions as ConversationPermissionsModel).toJson(),
         'bookingId': bookingId,
         'bookingStatus': bookingStatus,
+        'postStayEndsAt': postStayEndsAt?.toIso8601String(),
         'messages': messages.map((m) => (m as MessageModel).toJson()).toList(),
         'hasMore': hasMore,
       };

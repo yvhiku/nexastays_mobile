@@ -63,6 +63,7 @@ class Conversation extends Equatable {
     required this.permissions,
     this.bookingId,
     this.bookingStatus,
+    this.postStayEndsAt,
     this.messages = const [],
     this.hasMore = false,
   });
@@ -81,6 +82,7 @@ class Conversation extends Equatable {
   final ConversationPermissions permissions;
   final String? bookingId;
   final String? bookingStatus;
+  final DateTime? postStayEndsAt;
   final List<Message> messages;
   final bool hasMore;
 
@@ -100,6 +102,7 @@ class Conversation extends Equatable {
         permissions,
         bookingId,
         bookingStatus,
+        postStayEndsAt,
         messages,
         hasMore,
       ];

@@ -49,12 +49,18 @@ class InboxLoaded extends InboxState {
 }
 
 class InboxEmpty extends InboxState {
-  const InboxEmpty({this.unreadCount = 0});
+  const InboxEmpty({
+    this.unreadCount = 0,
+    this.filter = 'active',
+    this.query = '',
+  });
 
   final int unreadCount;
+  final String filter;
+  final String query;
 
   @override
-  List<Object?> get props => [unreadCount];
+  List<Object?> get props => [unreadCount, filter, query];
 }
 
 class InboxError extends InboxState {

@@ -39,7 +39,11 @@ class InboxCubit extends Cubit<InboxState> {
       (failure) => emit(InboxError(message: failure.message)),
       (conversations) {
         if (conversations.isEmpty) {
-          emit(InboxEmpty(unreadCount: unreadCount));
+          emit(InboxEmpty(
+            unreadCount: unreadCount,
+            filter: filter,
+            query: query ?? '',
+          ));
         } else {
           emit(InboxLoaded(
             conversations: conversations,
@@ -52,12 +56,22 @@ class InboxCubit extends Cubit<InboxState> {
     );
   }
 
+  Future<void> setFilter(String filter) async {
+    final current = state;
+    final query = current is InboxLoaded
+        ? current.query
+        : current is InboxEmpty
+            ? current.query
+            : '';
+    await loadConversations(filter: filter, query: query);
+  }
+
   Future<void> refresh() async {
     final current = state;
     if (current is InboxLoaded) {
       await loadConversations(filter: current.filter, query: current.query);
     } else if (current is InboxEmpty) {
-      await loadConversations();
+      await loadConversations(filter: current.filter, query: current.query);
     } else {
       await loadUnreadCount();
     }

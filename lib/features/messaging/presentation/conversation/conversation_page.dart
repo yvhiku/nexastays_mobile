@@ -152,12 +152,68 @@ class _ConversationPageState extends State<ConversationPage> {
             );
           }
           if (state is ConversationLoaded) {
+            final archived = state.conversation.messagingState == 'ARCHIVED';
             return Column(
               children: [
                 BookingSummaryBar(
                   snapshot: state.conversation.reservationSnapshot,
+                  bookingId: state.conversation.bookingId,
                   counterpartName: state.conversation.counterpart.name,
+                  messagingState: state.conversation.messagingState,
+                  bookingStatus: state.conversation.bookingStatus,
+                  postStayEndsAt: state.conversation.postStayEndsAt,
+                  canReview: state.conversation.permissions.canReview,
                 ),
+                if (archived)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: DSColors.line),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            Text(
+                              'Stay completed · This conversation has been archived.',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.dmSans(
+                                fontWeight: FontWeight.w600,
+                                color: DSColors.ink,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Need help with this reservation?',
+                              style: GoogleFonts.dmSans(color: DSColors.ink3),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                FilledButton(
+                                  onPressed: () => context.push('/contact'),
+                                  child: const Text('Contact Support'),
+                                ),
+                                if (state.conversation.bookingId != null) ...[
+                                  const SizedBox(width: 8),
+                                  OutlinedButton(
+                                    onPressed: () => context.push(
+                                      '/booking/${state.conversation.bookingId}',
+                                    ),
+                                    child: const Text('View reservation'),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 Expanded(
                   child: ListView.builder(
                     controller: _scrollController,

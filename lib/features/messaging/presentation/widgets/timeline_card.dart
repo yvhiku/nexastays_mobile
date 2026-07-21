@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../design_system/tokens/colors.dart';
+import '../../../booking/presentation/list/widgets/booking_review_sheet.dart';
 import '../../domain/entities/message.dart';
 
 class TimelineCard extends StatelessWidget {
@@ -12,12 +14,16 @@ class TimelineCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final metadata = message.metadata;
+    final reviewed = metadata['reviewed'] == true;
     final title = metadata['title'] as String? ??
         metadata['kind'] as String? ??
         _defaultTitle(message.type);
     final body = message.body ?? metadata['body'] as String?;
     final iconName = metadata['icon'] as String?;
-    final actions = metadata['actions'] as List<dynamic>? ?? const [];
+    final actions = reviewed
+        ? const <dynamic>[]
+        : (metadata['actions'] as List<dynamic>? ?? const []);
+    final bookingId = metadata['bookingId'] as String?;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -75,7 +81,7 @@ class TimelineCard extends StatelessWidget {
                         final map = action as Map<String, dynamic>;
                         final label = map['label'] as String? ?? 'Open';
                         return OutlinedButton(
-                          onPressed: () {},
+                          onPressed: () => _handleAction(context, map, bookingId),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: DSColors.primary,
                             side: const BorderSide(color: DSColors.line),
@@ -97,10 +103,44 @@ class TimelineCard extends StatelessWidget {
     );
   }
 
+  void _handleAction(
+    BuildContext context,
+    Map<String, dynamic> action,
+    String? bookingId,
+  ) {
+    final url = action['url'] as String?;
+    if (url != null && url.contains('/review')) {
+      final id = _bookingIdFromUrl(url) ?? bookingId;
+      if (id != null) {
+        showBookingReviewSheet(context: context, bookingId: id);
+        return;
+      }
+    }
+    if (url != null && url.contains('/bookings/')) {
+      final id = _bookingIdFromUrl(url);
+      if (id != null) {
+        context.push('/booking/$id');
+        return;
+      }
+    }
+    if (url != null && url.contains('/contact')) {
+      context.push('/contact');
+    }
+  }
+
+  String? _bookingIdFromUrl(String url) {
+    final match = RegExp(
+      r'/bookings/([0-9a-fA-F-]{36})',
+    ).firstMatch(url);
+    return match?.group(1);
+  }
+
   String _defaultTitle(String type) => switch (type) {
         'BOOKING_CARD' => 'Booking details',
         'PROPERTY_CARD' => 'Property',
+        'REVIEW_CARD' => 'Review your stay',
         'SYSTEM_EVENT' => 'Update',
+        'SYSTEM_NOTICE' => 'Notice',
         _ => 'Message',
       };
 
@@ -116,6 +156,7 @@ class TimelineCard extends StatelessWidget {
     return switch (type) {
       'BOOKING_CARD' => Icons.receipt_long_outlined,
       'PROPERTY_CARD' => Icons.home_outlined,
+      'REVIEW_CARD' => Icons.star_outline,
       _ => Icons.info_outline,
     };
   }
