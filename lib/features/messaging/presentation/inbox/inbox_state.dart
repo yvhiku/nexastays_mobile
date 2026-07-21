@@ -21,7 +21,7 @@ class InboxLoaded extends InboxState {
   const InboxLoaded({
     required this.conversations,
     required this.unreadCount,
-    this.filter = 'all',
+    this.filter = 'active',
     this.query = '',
   });
 

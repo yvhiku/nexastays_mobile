@@ -25,7 +25,7 @@ class InboxCubit extends Cubit<InboxState> {
     );
   }
 
-  Future<void> loadConversations({String filter = 'all', String? query}) async {
+  Future<void> loadConversations({String filter = 'active', String? query}) async {
     emit(const InboxLoading());
     final unreadResult = await _repository.getUnreadCount();
     final unreadCount = unreadResult.fold((_) => 0, (c) => c);
