@@ -164,7 +164,10 @@ class _ConversationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final preview = conversation.lastMessage.preview ?? 'No messages yet';
+    final preview = resolveRoleAwareInboxPreview(
+      conversation.lastMessage.preview,
+      conversation.permissions.viewerRole,
+    );
     final time = conversation.lastMessage.at;
     final timeLabel = time != null ? _formatTime(time) : '';
     final unread = conversation.unreadCount;
