@@ -8,6 +8,7 @@ class ConversationPermissions extends Equatable {
     required this.canReport,
     required this.canBlock,
     required this.canReview,
+    required this.viewerRole,
     required this.isReadOnly,
     required this.canArchive,
     required this.canDelete,
@@ -19,6 +20,7 @@ class ConversationPermissions extends Equatable {
   final bool canReport;
   final bool canBlock;
   final bool canReview;
+  final String viewerRole;
   final bool isReadOnly;
   final bool canArchive;
   final bool canDelete;
@@ -31,6 +33,7 @@ class ConversationPermissions extends Equatable {
         canReport,
         canBlock,
         canReview,
+        viewerRole,
         isReadOnly,
         canArchive,
         canDelete,

@@ -221,7 +221,10 @@ class _ConversationPageState extends State<ConversationPage> {
                     itemCount: state.messages.length,
                     itemBuilder: (context, index) {
                       final message = state.messages[index];
-                      return _MessageItem(message: message);
+                      return _MessageItem(
+                        message: message,
+                        viewerRole: state.conversation.permissions.viewerRole,
+                      );
                     },
                   ),
                 ),
@@ -244,14 +247,18 @@ class _ConversationPageState extends State<ConversationPage> {
 }
 
 class _MessageItem extends StatelessWidget {
-  const _MessageItem({required this.message});
+  const _MessageItem({
+    required this.message,
+    required this.viewerRole,
+  });
 
   final Message message;
+  final String viewerRole;
 
   @override
   Widget build(BuildContext context) {
     if (message.isTimelineCard) {
-      return TimelineCard(message: message);
+      return TimelineCard(message: message, viewerRole: viewerRole);
     }
     return TextBubble(message: message);
   }

@@ -7,23 +7,74 @@ import '../../../booking/presentation/list/widgets/booking_review_sheet.dart';
 import '../../domain/entities/message.dart';
 
 class TimelineCard extends StatelessWidget {
-  const TimelineCard({required this.message, super.key});
+  const TimelineCard({
+    required this.message,
+    this.viewerRole = 'guest',
+    super.key,
+  });
 
   final Message message;
+  final String viewerRole;
 
   @override
   Widget build(BuildContext context) {
     final metadata = message.metadata;
     final reviewed = metadata['reviewed'] == true;
-    final title = metadata['title'] as String? ??
-        metadata['kind'] as String? ??
-        _defaultTitle(message.type);
-    final body = message.body ?? metadata['body'] as String?;
-    final iconName = metadata['icon'] as String?;
-    final actions = reviewed
-        ? const <dynamic>[]
-        : (metadata['actions'] as List<dynamic>? ?? const []);
+    final isGuest = viewerRole != 'host';
+    final roleView = _readRoleView(metadata, isGuest ? 'guestView' : 'hostView');
     final bookingId = metadata['bookingId'] as String?;
+    final listingId = metadata['listingId'] as String?;
+
+    var title = roleView?['title'] as String? ??
+        metadata['title'] as String? ??
+        _defaultTitle(message.type);
+    var body = message.body ?? roleView?['body'] as String? ?? metadata['body'] as String?;
+    final iconName = metadata['icon'] as String?;
+    var actions = reviewed
+        ? const <dynamic>[]
+        : (roleView?['actions'] as List<dynamic>? ??
+            metadata['actions'] as List<dynamic>? ??
+            const []);
+
+    if (roleView == null) {
+      if (isGuest) {
+        if (reviewed) {
+          title = 'Thanks for reviewing!';
+          body = 'Your feedback helps future travelers.';
+          actions = const [];
+        }
+      } else if (reviewed) {
+        title = 'Guest reviewed successfully';
+        body = 'Your guest shared feedback about their stay.';
+        actions = listingId != null
+            ? [
+                {
+                  'id': 'view_review',
+                  'label': 'View review',
+                  'type': 'deep_link',
+                  'url': '/listings/$listingId#reviews',
+                },
+              ]
+            : const [];
+      } else {
+        title = 'Review request sent';
+        body = 'Your guest can leave a review for this stay.';
+        actions = const [];
+      }
+    } else if (!isGuest && reviewed && actions.isEmpty && listingId != null) {
+      actions = [
+        {
+          'id': 'view_review',
+          'label': 'View review',
+          'type': 'deep_link',
+          'url': '/listings/$listingId#reviews',
+        },
+      ];
+    } else if (!isGuest && !reviewed) {
+      actions = const [];
+    } else if (isGuest && reviewed) {
+      actions = const [];
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -32,39 +83,71 @@ class TimelineCard extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 360),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: DSColors.background2,
+              color: isGuest && message.type == 'REVIEW_CARD'
+                  ? Colors.white
+                  : DSColors.background2,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: DSColors.line),
+              border: Border.all(
+                color: message.type == 'REVIEW_CARD'
+                    ? DSColors.primary.withValues(alpha: 0.15)
+                    : DSColors.line,
+              ),
             ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Row(
-                    children: [
-                      Icon(
-                        _iconFor(iconName, message.type),
-                        size: 20,
-                        color: DSColors.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: GoogleFonts.dmSans(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                            color: DSColors.ink,
-                          ),
+                  if (message.type == 'REVIEW_CARD')
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(
+                        5,
+                        (_) => const Icon(
+                          Icons.star_rounded,
+                          size: 16,
+                          color: DSColors.primary,
                         ),
                       ),
-                    ],
-                  ),
+                    )
+                  else
+                    Row(
+                      children: [
+                        Icon(
+                          _iconFor(iconName, message.type),
+                          size: 20,
+                          color: DSColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: GoogleFonts.dmSans(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                              color: DSColors.ink,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  if (message.type == 'REVIEW_CARD') ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.dmSans(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        color: DSColors.ink,
+                      ),
+                    ),
+                  ],
                   if (body != null && body.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Text(
                       body,
+                      textAlign: TextAlign.center,
                       style: GoogleFonts.dmSans(
                         fontSize: 13,
                         color: DSColors.ink3,
@@ -72,19 +155,30 @@ class TimelineCard extends StatelessWidget {
                       ),
                     ),
                   ],
+                  if (reviewed && isGuest && message.type == 'REVIEW_CARD')
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        '✓',
+                        style: GoogleFonts.dmSans(
+                          fontWeight: FontWeight.w600,
+                          color: DSColors.primary,
+                        ),
+                      ),
+                    ),
                   if (actions.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
+                      alignment: WrapAlignment.center,
                       children: actions.map((action) {
                         final map = action as Map<String, dynamic>;
                         final label = map['label'] as String? ?? 'Open';
-                        return OutlinedButton(
+                        return FilledButton(
                           onPressed: () => _handleAction(context, map, bookingId),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: DSColors.primary,
-                            side: const BorderSide(color: DSColors.line),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: DSColors.primary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
@@ -103,6 +197,16 @@ class TimelineCard extends StatelessWidget {
     );
   }
 
+  Map<String, dynamic>? _readRoleView(
+    Map<String, dynamic> metadata,
+    String key,
+  ) {
+    final raw = metadata[key];
+    if (raw is Map<String, dynamic>) return raw;
+    if (raw is Map) return Map<String, dynamic>.from(raw);
+    return null;
+  }
+
   void _handleAction(
     BuildContext context,
     Map<String, dynamic> action,
@@ -113,6 +217,13 @@ class TimelineCard extends StatelessWidget {
       final id = _bookingIdFromUrl(url) ?? bookingId;
       if (id != null) {
         showBookingReviewSheet(context: context, bookingId: id);
+        return;
+      }
+    }
+    if (url != null && url.contains('/listings/')) {
+      final listingMatch = RegExp(r'/listings/([^/?#]+)').firstMatch(url);
+      if (listingMatch != null) {
+        context.push('/listing/${listingMatch.group(1)}');
         return;
       }
     }

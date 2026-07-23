@@ -759,6 +759,7 @@ class MockMessagingRemoteDataSource implements MessagingRemoteDataSource {
     canReport: true,
     canBlock: true,
     canReview: false,
+    viewerRole: 'guest',
     isReadOnly: false,
     canArchive: true,
     canDelete: true,
