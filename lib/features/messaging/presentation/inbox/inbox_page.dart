@@ -10,6 +10,7 @@ import '../../../../design_system/tokens/colors.dart';
 import '../../../../navigation/app_routes.dart';
 import '../../domain/entities/conversation.dart';
 import 'inbox_cubit.dart';
+import 'inbox_preview.dart';
 import 'inbox_state.dart';
 
 const _filters = [
