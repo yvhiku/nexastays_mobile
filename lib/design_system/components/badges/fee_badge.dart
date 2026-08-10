@@ -1,8 +1,8 @@
 // =============================================================================
 // NexaStays Design System — Fee Badge
 // =============================================================================
-// A subtle pill-shaped badge used to highlight pricing breakdowns,
-// cleaning fees, or discount labels. Includes native Tooltip support.
+// A subtle pill-shaped badge used to highlight pricing breakdowns
+// or discount labels. Includes native Tooltip support.
 // =============================================================================
 
 import 'package:flutter/material.dart';

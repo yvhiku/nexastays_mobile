@@ -43,7 +43,6 @@ class HostOnboardingState extends Equatable {
     this.weeklyDiscountPercent,
     this.monthlyDiscountPercent,
     this.minimumNights = 1,
-    this.cleaningFee = 0,
     this.checkInTime = '14:00',
     this.checkOutTime = '11:00',
     this.checkInContact,
@@ -96,7 +95,6 @@ class HostOnboardingState extends Equatable {
   final double? weeklyDiscountPercent;
   final double? monthlyDiscountPercent;
   final int minimumNights;
-  final double cleaningFee;
   final String checkInTime;
   final String checkOutTime;
   final String? checkInContact;
@@ -217,7 +215,6 @@ class HostOnboardingState extends Equatable {
     double? weeklyDiscountPercent,
     double? monthlyDiscountPercent,
     int? minimumNights,
-    double? cleaningFee,
     String? checkInTime,
     String? checkOutTime,
     String? checkInContact,
@@ -264,7 +261,6 @@ class HostOnboardingState extends Equatable {
       monthlyDiscountPercent:
           monthlyDiscountPercent ?? this.monthlyDiscountPercent,
       minimumNights: minimumNights ?? this.minimumNights,
-      cleaningFee: cleaningFee ?? this.cleaningFee,
       checkInTime: checkInTime ?? this.checkInTime,
       checkOutTime: checkOutTime ?? this.checkOutTime,
       checkInContact: checkInContact ?? this.checkInContact,
@@ -311,7 +307,6 @@ class HostOnboardingState extends Equatable {
         weeklyDiscountPercent,
         monthlyDiscountPercent,
         minimumNights,
-        cleaningFee,
         checkInTime,
         checkOutTime,
         checkInContact,

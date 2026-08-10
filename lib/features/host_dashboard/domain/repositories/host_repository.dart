@@ -30,7 +30,6 @@ abstract class HostRepository {
     String? checkOutTime,
     double? basePrice,
     double? weekendPrice,
-    double? cleaningFee,
     int? maxGuests,
     String? petsPolicy,
     String? smokingPolicy,

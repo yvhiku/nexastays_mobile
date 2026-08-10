@@ -172,13 +172,6 @@ class FeePreviewCard extends StatelessWidget {
               'Guest service fee (${StaysFeeConfig.instance.guestFeePercentLabel})',
               '+${feeBreakdown!.serviceFee.toStringAsFixed(0)} MAD',
             ),
-            if (feeBreakdown!.cleaningFee > 0) ...[
-              const SizedBox(height: 8),
-              _buildCalculationRow(
-                'Cleaning fee',
-                '+${feeBreakdown!.cleaningFee.toStringAsFixed(0)} MAD',
-              ),
-            ],
             if (feeBreakdown!.taxes > 0) ...[
               const SizedBox(height: 8),
               _buildCalculationRow(

@@ -237,7 +237,6 @@ class HostDashboardRepositoryImpl implements HostRepository {
     String? checkOutTime,
     double? basePrice,
     double? weekendPrice,
-    double? cleaningFee,
     int? maxGuests,
     String? petsPolicy,
     String? smokingPolicy,
@@ -257,13 +256,10 @@ class HostDashboardRepositoryImpl implements HostRepository {
         if (checkOutTime != null) 'checkout_time': checkOutTime,
         if (geoLat != null) 'geo_lat': geoLat,
         if (geoLng != null) 'geo_lng': geoLng,
-        if (basePrice != null ||
-            weekendPrice != null ||
-            cleaningFee != null)
+        if (basePrice != null || weekendPrice != null)
           'rate_plan': {
             if (basePrice != null) 'base_price': basePrice,
             if (weekendPrice != null) 'weekend_price': weekendPrice,
-            if (cleaningFee != null) 'cleaning_fee': cleaningFee,
           },
         if (maxGuests != null ||
             petsPolicy != null ||
@@ -424,7 +420,6 @@ class HostDashboardRepositoryImpl implements HostRepository {
       instantBooking: json['instant_booking'] == true,
       basePrice: numVal(rate['base_price']),
       weekendPrice: numVal(rate['weekend_price']),
-      cleaningFee: numVal(rate['cleaning_fee']),
       currency: (rate['currency'] ?? 'MAD').toString(),
       maxGuests: (rules['max_guests'] as num?)?.toInt() ?? 1,
       petsPolicy: (rules['pets_policy'] ?? 'NO').toString(),

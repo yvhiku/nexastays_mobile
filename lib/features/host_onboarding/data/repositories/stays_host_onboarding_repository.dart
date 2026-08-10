@@ -163,7 +163,6 @@ class StaysHostOnboardingRepository implements HostRepository {
           },
           'rate_plan': {
             'base_price': listingBasePrice,
-            'cleaning_fee': state.cleaningFee,
             'currency': 'MAD',
           },
           'rules': {

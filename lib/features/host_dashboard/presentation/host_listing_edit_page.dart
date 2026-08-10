@@ -34,7 +34,6 @@ class _HostListingEditPageState extends State<HostListingEditPage> {
   late final TextEditingController _addressCtrl;
   late final TextEditingController _basePriceCtrl;
   late final TextEditingController _weekendPriceCtrl;
-  late final TextEditingController _cleaningFeeCtrl;
   late final TextEditingController _maxGuestsCtrl;
   late final TextEditingController _checkInCtrl;
   late final TextEditingController _checkOutCtrl;
@@ -55,7 +54,6 @@ class _HostListingEditPageState extends State<HostListingEditPage> {
     _addressCtrl = TextEditingController();
     _basePriceCtrl = TextEditingController();
     _weekendPriceCtrl = TextEditingController();
-    _cleaningFeeCtrl = TextEditingController();
     _maxGuestsCtrl = TextEditingController();
     _checkInCtrl = TextEditingController();
     _checkOutCtrl = TextEditingController();
@@ -75,7 +73,6 @@ class _HostListingEditPageState extends State<HostListingEditPage> {
     _addressCtrl.dispose();
     _basePriceCtrl.dispose();
     _weekendPriceCtrl.dispose();
-    _cleaningFeeCtrl.dispose();
     _maxGuestsCtrl.dispose();
     _checkInCtrl.dispose();
     _checkOutCtrl.dispose();
@@ -104,7 +101,6 @@ class _HostListingEditPageState extends State<HostListingEditPage> {
         _weekendPriceCtrl.text = listing.weekendPrice > 0
             ? listing.weekendPrice.toStringAsFixed(0)
             : '';
-        _cleaningFeeCtrl.text = listing.cleaningFee.toStringAsFixed(0);
         _maxGuestsCtrl.text = listing.maxGuests.toString();
         _checkInCtrl.text = _trimTime(listing.checkInTime);
         _checkOutCtrl.text = _trimTime(listing.checkOutTime);
@@ -135,7 +131,6 @@ class _HostListingEditPageState extends State<HostListingEditPage> {
       address: _addressCtrl.text.trim(),
       basePrice: double.tryParse(_basePriceCtrl.text.trim()),
       weekendPrice: double.tryParse(_weekendPriceCtrl.text.trim()),
-      cleaningFee: double.tryParse(_cleaningFeeCtrl.text.trim()),
       maxGuests: int.tryParse(_maxGuestsCtrl.text.trim()),
       checkInTime: _checkInCtrl.text.trim(),
       checkOutTime: _checkOutCtrl.text.trim(),
@@ -256,8 +251,6 @@ class _HostListingEditPageState extends State<HostListingEditPage> {
                       _field('Nightly rate (MAD)', _basePriceCtrl,
                           keyboardType: TextInputType.number),
                       _field('Weekend rate (MAD)', _weekendPriceCtrl,
-                          keyboardType: TextInputType.number),
-                      _field('Cleaning fee (MAD)', _cleaningFeeCtrl,
                           keyboardType: TextInputType.number),
                       const SizedBox(height: 24),
                     ],

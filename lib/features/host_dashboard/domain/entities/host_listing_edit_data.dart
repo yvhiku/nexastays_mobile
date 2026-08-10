@@ -13,7 +13,6 @@ class HostListingEditData {
     required this.instantBooking,
     required this.basePrice,
     required this.weekendPrice,
-    required this.cleaningFee,
     required this.currency,
     required this.maxGuests,
     required this.petsPolicy,
@@ -42,7 +41,6 @@ class HostListingEditData {
   final bool instantBooking;
   final double basePrice;
   final double weekendPrice;
-  final double cleaningFee;
   final String currency;
   final int maxGuests;
   final String petsPolicy;
@@ -76,7 +74,6 @@ class HostListingEditData {
     String? checkOutTime,
     double? basePrice,
     double? weekendPrice,
-    double? cleaningFee,
     int? maxGuests,
     String? petsPolicy,
     String? smokingPolicy,
@@ -99,7 +96,6 @@ class HostListingEditData {
       instantBooking: instantBooking,
       basePrice: basePrice ?? this.basePrice,
       weekendPrice: weekendPrice ?? this.weekendPrice,
-      cleaningFee: cleaningFee ?? this.cleaningFee,
       currency: currency,
       maxGuests: maxGuests ?? this.maxGuests,
       petsPolicy: petsPolicy ?? this.petsPolicy,

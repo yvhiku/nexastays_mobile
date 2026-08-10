@@ -189,7 +189,6 @@ class PropertyDetailCubit extends Cubit<PropertyDetailState> {
 
       final feePreview = FeeBreakdown(
         basePrice: breakdown.subtotal,
-        cleaningFee: 0.0, // Hardcoded for preview, real app might fetch this per-property
         serviceFee: breakdown.serviceFee,
         taxes: breakdown.tax,
         total: breakdown.total,
