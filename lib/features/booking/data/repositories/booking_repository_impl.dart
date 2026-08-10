@@ -249,8 +249,8 @@ class BookingRepositoryImpl implements BookingRepository {
       final provider = (intent['provider'] ?? '').toString();
       final providerIntentId = intent['provider_intent_id'] as String?;
 
-      if (provider == 'mock' && providerIntentId != null) {
-        await remoteDataSource.simulateMockPayment(providerIntentId);
+      if (provider == 'mock') {
+        await remoteDataSource.simulateMockPayment(bookingId);
         final booking = await remoteDataSource.getBookingById(bookingId);
         return Right(booking);
       }

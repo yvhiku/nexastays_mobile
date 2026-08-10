@@ -37,7 +37,7 @@ abstract class BookingRemoteDataSource {
 
   Future<Map<String, dynamic>> payWithWallet(String bookingId);
 
-  Future<void> simulateMockPayment(String providerIntentId);
+  Future<void> simulateMockPayment(String bookingId);
 
   /// `POST /stays/bookings/occupants/upload-id` — returns `{ asset_id }`.
   Future<String> uploadOccupantIdDocument({
@@ -444,10 +444,10 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   }
 
   @override
-  Future<void> simulateMockPayment(String providerIntentId) async {
+  Future<void> simulateMockPayment(String bookingId) async {
     final response = await client.post(
-      ApiEndpoints.mockPaymentWebhook(),
-      data: {'provider_intent_id': providerIntentId},
+      ApiEndpoints.paymentMockConfirmByBookingId(bookingId),
+      data: const {},
       options: Options(),
     );
     _assertSuccess(response.statusCode, response.data);

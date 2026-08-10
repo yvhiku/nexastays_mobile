@@ -54,8 +54,11 @@ class ApiEndpoints {
       '/stays/bookings/occupants/upload-id';
   static const String staysBookingPaymentIntent =
       '/stays/bookings/{id}/payments/intent';
+  static const String staysBookingPaymentMockConfirm =
+      '/stays/bookings/{id}/payments/mock-confirm';
   static const String staysBookingPaymentWallet =
       '/stays/bookings/{id}/payments/wallet';
+  /** @deprecated Legacy unauthenticated webhook — do not use in clients. */
   static const String staysPaymentMockWebhook =
       '/stays/webhooks/payments/mock';
 
@@ -146,8 +149,12 @@ class ApiEndpoints {
   static String paymentIntentByBookingId(String id) =>
       staysBookingPaymentIntent.replaceFirst('{id}', id);
 
+  static String paymentMockConfirmByBookingId(String id) =>
+      staysBookingPaymentMockConfirm.replaceFirst('{id}', id);
+
   static String paymentWalletByBookingId(String id) =>
       staysBookingPaymentWallet.replaceFirst('{id}', id);
 
+  /** @deprecated Use [paymentMockConfirmByBookingId]. */
   static String mockPaymentWebhook() => staysPaymentMockWebhook;
 }
