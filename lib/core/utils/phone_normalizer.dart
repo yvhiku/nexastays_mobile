@@ -2,7 +2,7 @@
 /// Bare national digits / leading 0 default to Morocco (+212).
 /// Numbers that already include `+` or `00` keep their country code.
 
-const _e164 = RegExp(r'^\+[1-9]\d{7,14}$');
+final _e164 = RegExp(r'^\+[1-9]\d{7,14}$');
 
 /// True when [phone] looks like a valid E.164 number.
 bool isValidE164(String phone) => _e164.hasMatch(phone);

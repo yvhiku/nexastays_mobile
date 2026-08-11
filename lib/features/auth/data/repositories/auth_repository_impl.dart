@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_idensic_mobile_sdk_plugin/flutter_idensic_mobile_sdk_plugin.dart';
 
 import '../../../../core/error/exceptions.dart';
@@ -36,8 +37,8 @@ class AuthRepositoryImpl implements AuthRepository {
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'cached_user';
   static const String _pinKey = 'has_pin_';
-  static const String _phoneKey = 'nexastays_phone_number';
-  static const String _otpSessionKey = 'nexastays_otp_session_token';
+  static const String _phoneKey = SecureStorageKeys.phoneNumber;
+  static const String _otpSessionKey = SecureStorageKeys.otpSessionToken;
 
   Future<String> _requireStoredPhone() async {
     final phone = await secureStorage.read(_phoneKey);
@@ -92,6 +93,8 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, void>> sendOtp(String phone) async {
     try {
+      // New OTP intent must not reuse a previous binder/phone (SEC-011).
+      await secureStorage.clearRegistrationSecrets();
       await remoteDataSource.sendOtp(normalizeMoroccoPhone(phone));
       return const Right(null);
     } catch (e) {
@@ -183,6 +186,8 @@ class AuthRepositoryImpl implements AuthRepository {
         refreshToken: refresh,
         phoneFallback: normalizedPhone,
       );
+      // Returning-user / account-select path: drop any leftover binder.
+      await secureStorage.delete(_otpSessionKey);
       return Right(userModel);
     } catch (e) {
       return Left(_mapException(e));
@@ -236,6 +241,8 @@ class AuthRepositoryImpl implements AuthRepository {
         otpSessionToken: otpSession,
         pin: pin,
       );
+      // Server consumes binder on setPin; drop client residue (Identity hygiene).
+      await secureStorage.delete(_otpSessionKey);
       await secureStorage.write('$_pinKey$userId', 'true');
       return const Right(null);
     } catch (e) {
@@ -288,24 +295,42 @@ class AuthRepositoryImpl implements AuthRepository {
       final approved = status == 'APPROVED' || status == 'VERIFIED';
 
       if (approved) {
-        final otpSession = await secureStorage.read(_otpSessionKey);
-        if (otpSession != null && otpSession.isNotEmpty) {
-          final reg = await remoteDataSource.completeRegistration(otpSession);
-          final access = reg['access_token'] as String?;
-          final refresh = reg['refresh_token'] as String?;
-          if (access != null && refresh != null) {
-            final phone = await secureStorage.read(_phoneKey) ?? '';
-            await _hydrateUserAfterTokenSave(
-              accessToken: access,
-              refreshToken: refresh,
-              phoneFallback: phone,
-            );
-            await secureStorage.delete(_otpSessionKey);
-          }
-        }
+        await _finalizeRegistrationAfterKycApproval();
       }
 
       return Right(approved);
+    } catch (e) {
+      return Left(_mapException(e));
+    }
+  }
+
+  /// Server consume + hydrate + delete client OTP binder after KYC approval.
+  Future<void> _finalizeRegistrationAfterKycApproval() async {
+    final otpSession = await secureStorage.read(_otpSessionKey);
+    if (otpSession == null || otpSession.isEmpty) {
+      return;
+    }
+    final reg = await remoteDataSource.completeRegistration(otpSession);
+    final access = reg['access_token'] as String?;
+    final refresh = reg['refresh_token'] as String?;
+    if (access == null || refresh == null) {
+      return;
+    }
+    final phone = await secureStorage.read(_phoneKey) ?? '';
+    await _hydrateUserAfterTokenSave(
+      accessToken: access,
+      refreshToken: refresh,
+      phoneFallback: phone,
+    );
+    await secureStorage.delete(_otpSessionKey);
+  }
+
+  /// Test seam for SEC-011 completeRegistration cleanup (no Sumsub SDK).
+  @visibleForTesting
+  Future<Either<Failure, void>> finalizeRegistrationAfterKycApprovalForTest() async {
+    try {
+      await _finalizeRegistrationAfterKycApproval();
+      return const Right(null);
     } catch (e) {
       return Left(_mapException(e));
     }
@@ -352,6 +377,7 @@ class AuthRepositoryImpl implements AuthRepository {
         refreshToken: refresh,
         phoneFallback: normalizedPhone,
       );
+      await secureStorage.delete(_otpSessionKey);
       return Right(userModel);
     } catch (e) {
       return Left(_mapException(e));
@@ -393,13 +419,21 @@ class AuthRepositoryImpl implements AuthRepository {
     // Always clear local/session first so logout completes quickly and the UI
     // can transition even if the API is slow or unreachable (hung POST was
     // preventing AuthBloc from emitting AuthUnauthenticated).
+    //
+    // SEC-011: full auth wipe clears session tokens AND registration secrets
+    // (OTP binder + phone). Device id is intentionally retained.
     try {
-      await secureStorage.delete(_tokenKey);
+      await secureStorage.delete(_tokenKey); // legacy key; real tokens via SessionManager
       await localStorage.remove(_userKey);
       try {
-        sessionManager.clearSession();
+        await sessionManager.clearSession();
       } catch (_) {
         /* best effort */
+      }
+      await secureStorage.clearRegistrationSecrets();
+      // Optional Identity PIN flag hygiene (user-scoped only).
+      if (userId != null && userId.isNotEmpty) {
+        await secureStorage.delete('$_pinKey$userId');
       }
     } catch (_) {
       /* ignore */

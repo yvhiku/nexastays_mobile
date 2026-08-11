@@ -5,90 +5,138 @@
 // data (tokens, user ID) in the platform's encrypted key-value store.
 // =============================================================================
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Storage keys — keep in sync with [SecureStorageService] methods.
-class _Keys {
-  _Keys._();
+/// Well-known secure-storage keys for Nexa Stays mobile auth.
+///
+/// Keep session token keys distinct from registration secrets so callers can
+/// clear one without the other (SEC-011).
+class SecureStorageKeys {
+  SecureStorageKeys._();
 
   static const String accessToken = 'nexastays_access_token';
   static const String refreshToken = 'nexastays_refresh_token';
   static const String userId = 'nexastays_user_id';
+
+  /// Identity OTP / identity_session binder for new-user registration.
+  static const String otpSessionToken = 'nexastays_otp_session_token';
+
+  /// Normalized phone retained across KYC / registration steps.
+  static const String phoneNumber = 'nexastays_phone_number';
+
+  /// Durable device id for `x-device-id` — must survive logout.
+  static const String deviceId = 'nexastays_device_id';
 }
 
 /// Encrypted key-value storage for tokens and sensitive user data.
 ///
 /// Uses the singleton pattern so the same instance (and underlying platform
 /// channel) is shared across the app.
-///
-/// ```dart
-/// final storage = SecureStorageService.instance;
-/// await storage.saveAccessToken('eyJhbGci...');
-/// ```
 class SecureStorageService {
-  SecureStorageService._();
+  SecureStorageService._({
+    FlutterSecureStorage? platform,
+    Map<String, String>? memory,
+  })  : _platform = platform,
+        _memory = memory;
 
-  /// The single shared instance.
-  static final SecureStorageService instance = SecureStorageService._();
+  /// The single shared instance (platform secure storage).
+  static final SecureStorageService instance = SecureStorageService._(
+    platform: const FlutterSecureStorage(
+      aOptions: AndroidOptions(encryptedSharedPreferences: true),
+      iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+    ),
+  );
 
   /// Factory constructor that always returns the singleton.
   factory SecureStorageService() => instance;
 
-  final FlutterSecureStorage _storage = const FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
-  );
+  /// In-memory backend for unit tests (does not touch the platform channel).
+  @visibleForTesting
+  factory SecureStorageService.forTesting([Map<String, String>? store]) {
+    return SecureStorageService._(memory: store ?? <String, String>{});
+  }
+
+  final FlutterSecureStorage? _platform;
+  final Map<String, String>? _memory;
+
+  bool get _useMemory => _memory != null;
 
   // ── Access token ────────────────────────────────────────────────────
 
-  /// Persists the JWT access token.
   Future<void> saveAccessToken(String token) =>
-      _storage.write(key: _Keys.accessToken, value: token);
+      write(SecureStorageKeys.accessToken, token);
 
-  /// Reads the stored access token, or `null` if none exists.
-  Future<String?> getAccessToken() => _storage.read(key: _Keys.accessToken);
+  Future<String?> getAccessToken() => read(SecureStorageKeys.accessToken);
 
   // ── Refresh token ───────────────────────────────────────────────────
 
-  /// Persists the JWT refresh token.
   Future<void> saveRefreshToken(String token) =>
-      _storage.write(key: _Keys.refreshToken, value: token);
+      write(SecureStorageKeys.refreshToken, token);
 
-  /// Reads the stored refresh token, or `null` if none exists.
-  Future<String?> getRefreshToken() => _storage.read(key: _Keys.refreshToken);
+  Future<String?> getRefreshToken() => read(SecureStorageKeys.refreshToken);
 
   // ── User ID ─────────────────────────────────────────────────────────
 
-  /// Persists the authenticated user's ID.
-  Future<void> saveUserId(String id) =>
-      _storage.write(key: _Keys.userId, value: id);
+  Future<void> saveUserId(String id) => write(SecureStorageKeys.userId, id);
 
-  /// Reads the stored user ID, or `null` if none exists.
-  Future<String?> getUserId() => _storage.read(key: _Keys.userId);
+  Future<String?> getUserId() => read(SecureStorageKeys.userId);
 
   // ── Bulk clear ──────────────────────────────────────────────────────
 
-  /// Removes all authentication tokens and user ID from secure storage.
+  /// Removes access / refresh / userId only.
+  ///
+  /// Does **not** clear registration secrets (OTP binder, phone). Call
+  /// [clearRegistrationSecrets] from full logout / auth wipe paths (SEC-011).
   Future<void> clearTokens() async {
     await Future.wait([
-      _storage.delete(key: _Keys.accessToken),
-      _storage.delete(key: _Keys.refreshToken),
-      _storage.delete(key: _Keys.userId),
+      delete(SecureStorageKeys.accessToken),
+      delete(SecureStorageKeys.refreshToken),
+      delete(SecureStorageKeys.userId),
     ]);
   }
 
-  /// Removes all Nexa Stays secure entries.
-  Future<void> clearAll() => _storage.deleteAll();
+  /// Removes OTP binder + phone used for mid-registration / KYC.
+  ///
+  /// Does **not** clear session tokens or [SecureStorageKeys.deviceId].
+  Future<void> clearRegistrationSecrets() async {
+    await Future.wait([
+      delete(SecureStorageKeys.otpSessionToken),
+      delete(SecureStorageKeys.phoneNumber),
+    ]);
+  }
+
+  /// Removes all Nexa Stays secure entries (including device id).
+  Future<void> clearAll() async {
+    if (_useMemory) {
+      _memory!.clear();
+      return;
+    }
+    await _platform!.deleteAll();
+  }
 
   // ── Generic helpers ─────────────────────────────────────────────────
 
-  /// Writes an arbitrary key-value pair to secure storage.
-  Future<void> write(String key, String value) =>
-      _storage.write(key: key, value: value);
+  Future<void> write(String key, String value) async {
+    if (_useMemory) {
+      _memory![key] = value;
+      return;
+    }
+    await _platform!.write(key: key, value: value);
+  }
 
-  /// Reads an arbitrary value by key, or `null` if not found.
-  Future<String?> read(String key) => _storage.read(key: key);
+  Future<String?> read(String key) async {
+    if (_useMemory) {
+      return _memory![key];
+    }
+    return _platform!.read(key: key);
+  }
 
-  /// Deletes a single entry by key.
-  Future<void> delete(String key) => _storage.delete(key: key);
+  Future<void> delete(String key) async {
+    if (_useMemory) {
+      _memory!.remove(key);
+      return;
+    }
+    await _platform!.delete(key: key);
+  }
 }

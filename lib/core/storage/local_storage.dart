@@ -5,17 +5,13 @@
 // onboarding state, theme preference, cached filters, and search history.
 // =============================================================================
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Non-sensitive key-value storage backed by [SharedPreferences].
 ///
 /// Uses lazy initialisation — the underlying [SharedPreferences] instance is
 /// created on first access and reused for all subsequent calls.
-///
-/// ```dart
-/// final storage = LocalStorage();
-/// await storage.setBool('onboarding_completed', true);
-/// ```
 class LocalStorage {
   LocalStorage._();
 
@@ -26,6 +22,12 @@ class LocalStorage {
   factory LocalStorage() => instance;
 
   SharedPreferences? _prefs;
+
+  /// Clears the cached prefs handle so the next access reloads (unit tests).
+  @visibleForTesting
+  static void debugResetForTest() {
+    instance._prefs = null;
+  }
 
   /// Returns the cached [SharedPreferences] instance, creating it lazily.
   Future<SharedPreferences> get _instance async {
